@@ -72,7 +72,7 @@ log can *justify* building them later:
 
 ---
 
-## MVP thin chain (what is built today)
+## The thin chain
 
 ```mermaid
 flowchart TD
@@ -93,45 +93,16 @@ flowchart TD
     DEC --> OUT([Report or NO-BET])
     LP --> LOG[(Calibration log · bun:sqlite)]
     BT[[backtest.ts · validation MODE · deterministic · no LLM]] --> LOG
-    subgraph Review [/review-matchday · run manually after results]
-      SET[[settle.ts · deterministic]] --> MET[[metrics.ts · betting + validation]] --> SUM[Summarize · standard_reasoning]
+    subgraph Review["/review-matchday · run manually after results"]
+      SET[[settle.ts · deterministic]] --> MET[[metrics.ts · betting and validation]] --> SUM[Summarize · standard_reasoning]
     end
     LOG --> SET
     LOG --> MET
 ```
 
-## Full target pipeline (extension goal — NOT yet built)
-
-The diagram below is the aspiration, not the implementation. The parallel scouts,
-the Head Scout fusion step, and everything labelled *extension* are the named
-extension points — they do **not** exist in code yet.
-
-```mermaid
-flowchart TD
-    U([/analyze-match fixtureId]) --> HC[Head Coach · high_reasoning]
-    HC --> PF[[prefetch.ts · deterministic]]
-    PF --> DQ{Data Quality Gate · deterministic}
-    DQ -->|fail| NB([NO-BET / insufficient data])
-    subgraph Scouts [Scouts — parallel · standard_reasoning]
-      FS[Form Scout]
-      LS[Lineup Scout · extension]
-      PS[Player Scout · extension]
-      CS[Context Scout · extension]
-    end
-    DQ -->|pass| FS & LS & PS & CS
-    FS & LS & PS & CS --> HSC[Head Scout · standard_reasoning · extension]
-    HSC --> Q[Quant · standard_reasoning]
-    Q --> T[Trader · standard_reasoning]
-    T --> RM[Risk Manager · standard_reasoning]
-    RM --> SH[Sharp / Critic · high_reasoning · fresh context]
-    SH --> DEC[Head Coach · final decision · high_reasoning]
-    DEC --> OUT([Report or NO-BET])
-    DEC --> LOG[(Calibration log · bun:sqlite)]
-```
-
-> **Living-diagram rule:** these diagrams are part of "done". If the roster, the
-> flow, or the model assignments change, the diagram changes in the *same* commit.
-> A stale diagram is worse than none.
+> **Living-diagram rule:** this diagram is part of "done". If the roster, the flow,
+> or the model assignments change, the diagram changes in the *same* commit. A stale
+> diagram is worse than none.
 
 ---
 

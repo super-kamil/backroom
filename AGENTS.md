@@ -111,7 +111,7 @@ API-Football v3 endpoints via `api-client.ts`.
 
 ---
 
-## MVP thin chain (built)
+## The thin chain
 
 ```mermaid
 flowchart TD
@@ -132,39 +132,11 @@ flowchart TD
     DEC --> OUT([Report or NO-BET])
     LP --> LOG[(Calibration log · bun:sqlite)]
     BT[[backtest.ts · validation MODE · deterministic · no LLM]] --> LOG
-    subgraph Review [/review-matchday · run manually after results]
-      SET[[settle.ts · deterministic]] --> MET[[metrics.ts · betting + validation]] --> SUM[Summarize · standard_reasoning]
+    subgraph Review["/review-matchday · run manually after results"]
+      SET[[settle.ts · deterministic]] --> MET[[metrics.ts · betting and validation]] --> SUM[Summarize · standard_reasoning]
     end
     LOG --> SET
     LOG --> MET
-```
-
-## Full target pipeline (extension goal — NOT yet built)
-
-The parallel scouts (Lineup / Player / Context), the **Head Scout** fusion step, and
-everything tagged *extension* are named extension points — not present in code.
-
-```mermaid
-flowchart TD
-    U([/analyze-match fixtureId]) --> HC[Head Coach · high_reasoning]
-    HC --> PF[[prefetch.ts · deterministic]]
-    PF --> DQ{Data Quality Gate · deterministic}
-    DQ -->|fail| NB([NO-BET / insufficient data])
-    subgraph Scouts [Scouts — parallel · standard_reasoning]
-      FS[Form Scout]
-      LS[Lineup Scout · extension]
-      PS[Player Scout · extension]
-      CS[Context Scout · extension]
-    end
-    DQ -->|pass| FS & LS & PS & CS
-    FS & LS & PS & CS --> HSC[Head Scout · standard_reasoning · extension]
-    HSC --> Q[Quant · standard_reasoning]
-    Q --> T[Trader · standard_reasoning]
-    T --> RM[Risk Manager · standard_reasoning]
-    RM --> SH[Sharp / Critic · high_reasoning · fresh context]
-    SH --> DEC[Head Coach · final decision · high_reasoning]
-    DEC --> OUT([Report or NO-BET])
-    DEC --> LOG[(Calibration log · bun:sqlite)]
 ```
 
 ---
@@ -172,10 +144,10 @@ flowchart TD
 ## LIVING-DIAGRAM RULE
 
 **Whenever the agent roster, the flow, or the model assignments change, the mermaid
-diagrams above MUST be updated in the same change.**
+diagram above MUST be updated in the same change.**
 
-A stale diagram is worse than no diagram — it actively misleads. Treat the diagrams,
+A stale diagram is worse than no diagram — it actively misleads. Treat the diagram,
 this roster table, the per-agent mapping, and `AGENT_MODELS`/`AGENT_PROMPT_VERSIONS`
-in `src/lib/config.ts` as **a single coupled unit**. If you add the Lineup Scout,
-swap a model tier, or reorder the chain, the table *and* both diagrams change before
-the work is "done". Keeping them in sync is part of done, not a follow-up.
+in `src/lib/config.ts` as **a single coupled unit**. If you add a scout, swap a model
+tier, or reorder the chain, the table *and* the diagram change before the work is
+"done". Keeping them in sync is part of done, not a follow-up.
