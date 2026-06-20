@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Secrets
+.env
+.env.local
+
+# Local data — SQLite cache + calibration log, and per-match run artifacts.
+# These are runtime state, not source. The schema lives in code.
+data/*.sqlite
+data/*.sqlite-*
+runs/
+
+# Editor / OS
+.DS_Store
+*.log

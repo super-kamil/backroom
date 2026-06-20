@@ -1,0 +1,21 @@
+{
+  "name": "backroom",
+  "version": "0.1.0",
+  "description": "Football Match Analysis Factory — a multi-agent system that challenges the bookmaker's 1X2 odds with an independent, calibrated probability estimate.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "prefetch": "bun run src/scripts/prefetch.ts",
+    "compute": "bun run src/scripts/compute.ts",
+    "validate": "bun run src/scripts/validate.ts",
+    "log-prediction": "bun run src/scripts/log-prediction.ts",
+    "settle": "bun run src/scripts/settle.ts",
+    "metrics": "bun run src/scripts/metrics.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}
