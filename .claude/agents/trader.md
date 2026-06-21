@@ -43,22 +43,42 @@ under `runs/<fixtureId>/`.
 
 ## Determinism boundary
 
-Agents judge; scripts compute. Pass every number through faithfully — raw odds,
-implied, overround, fair probs, per-outcome value, bestSelection. Do NOT invent,
-round, or alter any figure. Your words go in `notes`; the numbers come from the
-script.
+Agents judge; scripts compute. Pass every number through faithfully. The
+following fields are **owned by the script** and must pass through EXACTLY as
+they appear in `trader-math.json`: `rawOdds`, `impliedRaw`, `overround`,
+`deVigMethod`, `fairProbs`, every per-outcome `value`/`edge`/`hasValue`,
+`valueThreshold`, and `bestSelection`. Do NOT invent, round, or alter any of
+them. Your words go in `notes`; the numbers come from the script.
 
-Every number you carry is **cross-checked for exact equality** against
+Every one of those fields is **cross-checked for exact equality** against
 `trader-math.json` by `validate.ts`. A rounded or altered figure FAILS
 validation — copy them through verbatim.
+
+**`bestSelection` is deterministic — copy it through verbatim, ALWAYS.** It is
+written by `devig.ts` into `trader-math.json`; you read it and reproduce it
+unchanged. NEVER set it to `null` and NEVER change it to a different outcome,
+**even when you conclude there is no genuine value.** The validator checks
+`bestSelection` for exact equality with the deterministic source — overwriting
+it (e.g. forcing `null` to signal "no bet") FAILS validation with
+`bestSelection: must equal the deterministic source ...`. The judgment about
+whether to bet belongs in your prose, not in this field.
 
 ## How to judge value
 
 - Value exists ONLY where our probability exceeds the market's _vig-free_ fair
   probability by at least the configured `valueThreshold`. Beating the raw
   (margin-inflated) implied price is not value — that is just paying the vig.
-- Trust `bestSelection`: it is null unless an outcome clears the threshold. A null
-  bestSelection means NO BET, and that is a perfectly good outcome.
+- `bestSelection` is the **highest-qualifying-edge outcome** the script picked
+  (or `null` when the script found none). That is NOT the same as "what we
+  recommend" — the head coach owns the final recommendation. Read it as the
+  script's flag for the best candidate, then judge it; do not treat it as a
+  verdict you may overwrite.
+- **Express the trading JUDGMENT only in `notes`.** When you conclude an edge is
+  a model artefact, sits on a longshot, or otherwise does not deserve a bet, say
+  exactly that in `notes` — a clear "this is not genuine value / NO-BET" verdict.
+  Do NOT encode that verdict by mutating `bestSelection` (or any other numeric
+  field); the prose is where your discipline lives. A NO-BET conclusion stated in
+  `notes` is a perfectly good, professional outcome.
 - **Known bias:** proportional de-vig is a deliberate simplification and carries
   favorite-longshot bias — it tends to overstate fair probability on longshots
   and understate it on favorites. Flag this in `notes`, especially when the
@@ -67,8 +87,9 @@ validation — copy them through verbatim.
 
 ## Output — must match `TraderReport` exactly
 
-Carry the computed numbers through verbatim. Write valid JSON to
-`runs/<fixtureId>/trader.json`:
+Carry the computed numbers through verbatim — including `bestSelection` exactly
+as the script wrote it (never `null`-it or change it yourself). Write valid JSON
+to `runs/<fixtureId>/trader.json`:
 
 ```json
 {

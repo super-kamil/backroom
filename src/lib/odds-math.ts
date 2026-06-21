@@ -285,6 +285,10 @@ const VALUE_OUTCOMES: readonly Outcome[] = ["home", "draw", "away"];
  * only where ourProb beats the vig-free fair prob by at least valueThreshold;
  * bestSelection is the highest-qualifying-edge outcome, or null when none clears
  * the bar. No interpretation, no rounding — pure arithmetic.
+ *
+ * `bestSelection` is the DETERMINISTIC pick, NOT a recommendation: downstream
+ * agents must copy it through verbatim (the backpressure validator enforces
+ * equality), never re-derive or override it.
  */
 export function computeValue(
   ourProbs: OutcomeProbs,

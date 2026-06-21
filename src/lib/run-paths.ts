@@ -10,6 +10,7 @@
  *     quant-math.json   ← deterministic Poisson output (QuantMath, from compute.ts)
  *     quant.json        ← QuantReport
  *     trader-math.json  ← deterministic de-vig + value (from devig.ts)
+ *     plausibility.json ← deterministic model-plausibility verdict (from plausibility.ts)
  *     trader.json       ← TraderReport
  *     risk-math.json    ← deterministic stake sizing (from stake.ts)
  *     risk.json         ← RiskReport
@@ -41,6 +42,7 @@ export type RunArtifact =
   | "quant-math"
   | "quant"
   | "trader-math"
+  | "plausibility"
   | "trader"
   | "risk-math"
   | "risk"

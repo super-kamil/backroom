@@ -16,8 +16,9 @@ are out of scope — do not invent steps for them.
 ## The deterministic / agentic boundary
 
 - **Deterministic** (scripts, pure arithmetic, no LLM judgment): `prefetch.ts`,
-  the Data Quality Gate, `compute.ts`, `devig.ts`, `stake.ts`, `validate.ts`. These
-  produce the `*-math.json` and `gate.json` files. They are cheap and fail loudly.
+  the Data Quality Gate, `compute.ts`, `devig.ts`, `plausibility.ts`, `stake.ts`,
+  `validate.ts`. These produce the `*-math.json`, `gate.json`, and
+  `plausibility.json` files. They are cheap and fail loudly.
 - **Agentic** (subagents that add qualitative judgment and write their report):
   form-scout, quant, trader, risk-manager, sharp, head-coach.
 - The boundary matters: an agent reads its deterministic `*-math.json` slice and
@@ -103,7 +104,38 @@ Then read `runs/<id>/gate.json` (a `DataQualityResult`).
   subagent. The gate runs _before_ any LLM precisely so a rate-limit, timeout, or
   coverage hole fails cheaply without burning model calls.
 - If `gate.gate === "pass"`: continue. Carry `gate.inputConfidence` forward — it
-  caps the honest ceiling of the final confidence.
+  caps the honest ceiling of the final confidence. Note: when the LIVE recent-form
+  fallback supplied the baseline (`prefetch` sets `baselineSource: "form-fallback"`,
+  e.g. a neutral-venue / early-tournament fixture), the gate caps `inputConfidence`
+  at `medium` — a deliberate, honest signal that the baseline is a soft proxy.
+
+## Step 1b — DETERMINISTIC MODEL-PLAUSIBILITY PRE-CHECK (still before any LLM)
+
+A passing gate means the inputs are PRESENT; it does not mean the model can price
+this fixture. A neutral-venue / data-thin baseline can be fed through correct
+Poisson math and still yield a degenerate estimate (a favorite's λ deflated far
+below its scoring rate, a near-zero λ, a draw far above the market's fair price).
+Catch that here — deterministically and cheaply — before spending any model calls.
+
+Run the pricing math and the plausibility check (all pure arithmetic, no LLM):
+
+```
+bun run src/scripts/compute.ts <id>
+bun run src/scripts/devig.ts <id>
+bun run src/scripts/plausibility.ts <id>
+```
+
+Then read `runs/<id>/plausibility.json` (a `PlausibilityResult`).
+
+- If `reliable === false` (a `"degenerate"` flag fired; `plausibility.ts` also exits
+  non-zero): **STOP**. Output **NO-BET / model unreliable** and list the `flags`
+  (code + detail + severity). Do NOT dispatch any subagent — the degenerate estimate
+  would only mislead them. This is the gate working, one level deeper: the cheap
+  deterministic stop now also rejects un-priceable inputs, not just absent ones.
+- If `reliable === true`: continue to Step 2. Carry any `"warn"` flags forward as
+  context for the quant and the head coach (they temper confidence, they do not
+  block). The quant and trader will re-run `compute.ts` / `devig.ts` (idempotent)
+  and add their interpretation on top of these same numbers.
 
 ## Step 2 — FORM SCOUT
 
@@ -228,5 +260,9 @@ encourage chasing losses, never overstate edge, never imply certainty.
 - Max **2 attempts** per agentic step, then escalate to **NO-BET / needs human
   review**. Never loop indefinitely.
 - The gate is the cheap early stop — honor `gate.fail` before any LLM runs.
+- The model-plausibility pre-check (Step 1b) is the second cheap stop — honor
+  `plausibility.reliable === false` (a degenerate estimate) as NO-BET before any
+  LLM runs. The math is correct; the inputs are degenerate. Never hand-tune the
+  draw to make a degenerate estimate look reasonable.
 - Validate after every subagent; trust the structured artifact, not chat prose.
 - Never paper over uncertainty. **NO-BET is a first-class output.**

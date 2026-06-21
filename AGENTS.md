@@ -84,8 +84,8 @@ authoritative; this document does not restate the field lists. Key contracts:
 
 Run artifacts are written into a per-match run directory by the conventions in
 [`src/lib/run-paths.ts`](src/lib/run-paths.ts): `runs/<fixtureId>/{prefetch, gate,
-form-scout, quant-math, quant, trader-math, trader, risk-math, risk, sharp,
-decision}.json`.
+form-scout, quant-math, quant, trader-math, plausibility, trader, risk-math, risk,
+sharp, decision}.json`.
 
 ---
 
@@ -99,7 +99,8 @@ API-Football v3 endpoints via `api-client.ts`.
 | ----------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | (resolve)         | the slash-command argument (team names + optional date)                | `/fixtures?date=` → pure name match (`fixture-match.ts`) → a fixture id. Deterministic, no LLM; **skipped** when the argument is already a numeric id.                                                                   |
 | (prefetch)        | —                                                                      | **live**: `/fixtures`, `/leagues` (coverage), `/teams/statistics`, `/standings`, `/odds` (fresh), `/predictions`. **validation**: `/fixtures` (season) → as-of baseline/form (no lookahead), `/odds` (cached historical) |
-| Data Quality Gate | `prefetch.json`                                                        | deterministic — odds present, baseline present, both form windows ≥ `MIN_FIXTURES` (5)                                                                                                                                   |
+| Data Quality Gate | `prefetch.json`                                                        | deterministic — odds present, baseline present (≥ `MIN_BASELINE_MATCHES`), both form windows ≥ `MIN_FIXTURES` (5); caps `inputConfidence` at `medium` when `baselineSource === "form-fallback"`                          |
+| plausibility      | `quant-math.json` + `trader-math.json` + `prefetch.json`               | deterministic — `assessModelPlausibility` flags a degenerate estimate (near-zero λ, favorite deflated below its scoring rate, large API divergence, draw far over market). `reliable === false` ⇒ NO-BET before any LLM  |
 | **form-scout**    | `bundle.form` (short window, last ~10)                                 | live `/fixtures?team&last`; validation `getRecentFormBySeason(beforeDate)` → `FormWindow`                                                                                                                                |
 | **quant**         | `bundle.baseline` + `quant-math.json`                                  | live `/teams/statistics` + `/standings`; validation as-of `computeBaselineFromFixtures` → Poisson `computeOneXTwo`                                                                                                       |
 | **trader**        | `bundle.odds.consensus` + `quant-math.json` probs → `trader-math.json` | `/odds` (consensus median across books, Match Winner / bet id 1) → shared `computeValue` (de-vig + value)                                                                                                                |
@@ -124,7 +125,9 @@ flowchart TD
     RES -->|ambiguous / none| ASK([Ask human for a fixture id])
     PF --> DQ{Data Quality Gate · deterministic}
     DQ -->|fail| NB([NO-BET / insufficient data])
-    DQ -->|pass| FS[Form Scout · standard_reasoning]
+    DQ -->|pass| PC[[plausibility pre-check · compute.ts + devig.ts + plausibility.ts · deterministic · before any LLM]]
+    PC -->|degenerate estimate · reliable=false| NBU([NO-BET / model unreliable])
+    PC -->|reliable| FS[Form Scout · standard_reasoning]
     FS --> Q[Quant · standard_reasoning · 1X2 only]
     Q -. runs .-> CM[[compute.ts · Poisson]]
     Q --> T[Trader · standard_reasoning]

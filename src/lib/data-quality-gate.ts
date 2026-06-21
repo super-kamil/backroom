@@ -14,6 +14,14 @@ import type { DataQualityResult, PrefetchBundle } from "./contracts.ts";
 /** Minimum resolved fixtures in a form window for it to be "sufficient". */
 export const MIN_FIXTURES = 5;
 
+/**
+ * Minimum matches played on BOTH the home team's home side and the away team's
+ * away side for the season baseline to count as available. A single match is not
+ * a baseline; kept modest (3) so genuine season aggregates — and the Belgium
+ * case (home=5, away=8) — still clear the bar.
+ */
+export const MIN_BASELINE_MATCHES = 3;
+
 /** A "full" form window — drives the high-confidence threshold. */
 const FULL_FORM_WINDOW = 8;
 
@@ -32,8 +40,8 @@ export function evaluateGate(bundle: PrefetchBundle): DataQualityResult {
   const sufficientHomeForm = homeForm >= MIN_FIXTURES;
   const sufficientAwayForm = awayForm >= MIN_FIXTURES;
   const baselineAvailable =
-    bundle.baseline.home.matchesPlayed > 0 &&
-    bundle.baseline.away.matchesPlayed > 0 &&
+    bundle.baseline.home.matchesPlayed >= MIN_BASELINE_MATCHES &&
+    bundle.baseline.away.matchesPlayed >= MIN_BASELINE_MATCHES &&
     bundle.baseline.league.avgHomeGoals > 0 &&
     bundle.baseline.league.avgAwayGoals > 0;
   const coverageChecked =
@@ -65,11 +73,26 @@ export function evaluateGate(bundle: PrefetchBundle): DataQualityResult {
   else if (gate === "pass") inputConfidence = "medium";
   else inputConfidence = "low";
 
+  // The LIVE recent-form fallback baseline is a documented-as-weak proxy (not
+  // opposition-adjusted, neutral-venue/data-thin). It must NOT be promoted to
+  // the highest tier: cap it at "medium". The gate still PASSES — live mode is
+  // designed to proceed with tempered confidence, not to fail here.
+  const baselineFromFormFallback = bundle.baselineSource === "form-fallback";
+  if (baselineFromFormFallback && inputConfidence === "high") {
+    inputConfidence = "medium";
+  }
+
+  const formFallbackNote = baselineFromFormFallback
+    ? " Baseline derived from recent-form proxy (neutral-venue/data-thin) — confidence capped at medium."
+    : "";
+
   const reason =
     gate === "pass"
       ? `Inputs sufficient: odds present, baseline present, form windows home=${homeForm}/away=${awayForm} (>= ${MIN_FIXTURES}). Confidence ${inputConfidence}.` +
-        (nothingMissing ? "" : ` Minor gaps: ${missing.join(", ")}.`)
-      : `Inputs insufficient — gate FAIL. Missing/failed: ${missing.join(", ") || "unknown"}.`;
+        (nothingMissing ? "" : ` Minor gaps: ${missing.join(", ")}.`) +
+        formFallbackNote
+      : `Inputs insufficient — gate FAIL. Missing/failed: ${missing.join(", ") || "unknown"}.` +
+        formFallbackNote;
 
   return {
     gate,

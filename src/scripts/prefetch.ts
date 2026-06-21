@@ -24,7 +24,7 @@
  *                  Historical odds (immutable) are served from the STABLE cache.
  */
 
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 
 import type { PrefetchBundle } from "../lib/contracts.ts";
 import { API_KEY, MODE, FORM_WINDOW } from "../lib/config.ts";
@@ -55,6 +55,15 @@ if (API_KEY === "") {
   );
   process.exit(1);
 }
+
+// ── 0. Run hygiene — start from a clean run directory ─────────────────────────
+// Wipe runs/<id>/ before writing anything, so stale artifacts from a prior or
+// partial run (old agent reports, *-math.json, decision.json) can't leak into
+// this fresh run and manufacture false "convergence". Robust if the dir is
+// absent yet (recursive + force never throws on a missing path).
+const dir = runDir(fixtureId);
+rmSync(dir, { recursive: true, force: true });
+mkdirSync(dir, { recursive: true });
 
 const cache = new Cache(CACHE_DB_PATH);
 const api = createApiClient({ cache });
@@ -102,6 +111,10 @@ let leagueAverages: PrefetchBundle["baseline"]["league"] = {
   avgHomeGoals: 0,
   avgAwayGoals: 0,
 };
+// Tracks how the baseline was derived. Flips to "form-fallback" only when the
+// LIVE recent-form proxy fires below; otherwise it stays "season". The gate
+// caps confidence to at most "medium" on the form-fallback path.
+let baselineSource: PrefetchBundle["baselineSource"] = "season";
 
 if (MODE === "validation") {
   // AS-OF-KICKOFF reconstruction — NO LOOKAHEAD. Everything is derived from the
@@ -222,6 +235,9 @@ if (MODE === "validation") {
       baselineHome = formBaseline.home;
       baselineAway = formBaseline.away;
       leagueAverages = formBaseline.league;
+      // Mark the baseline as the soft recent-form proxy so the gate can cap
+      // confidence — it must never be promoted to the "high" tier.
+      baselineSource = "form-fallback";
       // Drop any season-baseline gaps now satisfied by the recent-form proxy.
       for (const tag of ["baseline:home", "baseline:away", "baseline:league"]) {
         const i = missing.indexOf(tag);
@@ -282,13 +298,16 @@ const bundle: PrefetchBundle = {
   },
   form: { home: homeForm, away: awayForm },
   baseline: { home: baselineHome, away: baselineAway, league: leagueAverages },
+  baselineSource,
   odds,
   apiPredictions,
   dataTimestamps,
   missing,
 };
 
-mkdirSync(runDir(fixtureId), { recursive: true });
+// Dir already created in step 0; ensure it once more (idempotent) in case a
+// later refactor moves the hygiene step.
+mkdirSync(dir, { recursive: true });
 await Bun.write(
   runPath(fixtureId, "prefetch"),
   JSON.stringify(bundle, null, 2),

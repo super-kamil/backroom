@@ -83,7 +83,9 @@ flowchart TD
     RES -->|ambiguous / none| ASK([Ask human for a fixture id])
     PF --> DQ{Data Quality Gate · deterministic}
     DQ -->|fail| NB([NO-BET / insufficient data])
-    DQ -->|pass| FS[Form Scout · standard_reasoning]
+    DQ -->|pass| PC[[plausibility pre-check · compute.ts + devig.ts + plausibility.ts · deterministic · before any LLM]]
+    PC -->|degenerate estimate · reliable=false| NBU([NO-BET / model unreliable])
+    PC -->|reliable| FS[Form Scout · standard_reasoning]
     FS --> Q[Quant · standard_reasoning · 1X2 only]
     Q -. runs .-> CM[[compute.ts · Poisson]]
     Q --> T[Trader · standard_reasoning]
@@ -243,6 +245,7 @@ bun run src/scripts/capability.ts              # confirm your plan unlocks the M
 bun run src/scripts/prefetch.ts <fixtureId>    # → runs/<id>/prefetch.json + gate.json (MODE-aware)
 bun run src/scripts/compute.ts  <fixtureId>    # → runs/<id>/quant-math.json (Poisson)
 bun run src/scripts/devig.ts    <fixtureId>    # → runs/<id>/trader-math.json (reads quant-math.json)
+bun run src/scripts/plausibility.ts <fixtureId> # → runs/<id>/plausibility.json (degenerate-estimate pre-check; exit 2 = NO-BET)
 bun run src/scripts/stake.ts    <fixtureId>    # → runs/<id>/risk-math.json
 bun run src/scripts/validate.ts <agent> <id>   # VALID/INVALID gate (schema/bounds/consistency + math cross-check)
 
@@ -292,6 +295,7 @@ backroom/
 │  │  ├─ config.ts                      # tunables, model tiers, version stamps, MODE
 │  │  ├─ run-paths.ts                   # per-match run dir + sqlite path conventions
 │  │  ├─ odds-math.ts (+ .test)         # Poisson, de-vig, computeValue, EV, staking
+│  │  ├─ model-plausibility.ts (+ .test) # degenerate-estimate pre-check (pure, no I/O)
 │  │  ├─ data-quality-gate.ts (+ .test) # the deterministic Data Quality Gate
 │  │  ├─ historical-baseline.ts (+ .test) # as-of-date baseline (no-lookahead backtest)
 │  │  ├─ validators.ts (+ .test)        # backpressure: schema/bounds/consistency/cross-check
@@ -304,6 +308,7 @@ backroom/
 │     ├─ prefetch.ts                    # MODE-aware network prefetch + gate → run dir
 │     ├─ compute.ts                     # Poisson → quant-math.json
 │     ├─ devig.ts                       # de-vig + value (reads quant-math.json) → trader-math.json
+│     ├─ plausibility.ts                # model-plausibility pre-check (degenerate estimate?) → plausibility.json
 │     ├─ stake.ts                       # stake sizing + EV → risk-math.json
 │     ├─ validate.ts                    # agent-report validation gate (+ math cross-check)
 │     ├─ log-prediction.ts             # decision → calibration log (deterministic version stamp)

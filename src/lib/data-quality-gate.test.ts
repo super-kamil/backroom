@@ -10,7 +10,11 @@
 
 import { test, expect, describe } from "bun:test";
 import type { MatchSummary, PrefetchBundle } from "./contracts.ts";
-import { evaluateGate, MIN_FIXTURES } from "./data-quality-gate.ts";
+import {
+  evaluateGate,
+  MIN_FIXTURES,
+  MIN_BASELINE_MATCHES,
+} from "./data-quality-gate.ts";
 
 // ── Fixture builders ─────────────────────────────────────────────────────────
 
@@ -120,6 +124,42 @@ describe("evaluateGate — pass", () => {
     expect(r.missing).toContain("apiPredictions");
     expect(r.reason).toContain("apiPredictions");
   });
+
+  test("season baseline (baselineSource undefined) with full windows is still high", () => {
+    const r = evaluateGate(bundle());
+    expect(r.gate).toBe("pass");
+    expect(r.inputConfidence).toBe("high"); // unchanged behavior
+  });
+
+  test('explicit baselineSource "season" with full windows is still high', () => {
+    const r = evaluateGate(bundle({ baselineSource: "season" }));
+    expect(r.gate).toBe("pass");
+    expect(r.inputConfidence).toBe("high");
+  });
+});
+
+// ── Form-fallback baseline → confidence capped at medium ─────────────────────
+
+describe("evaluateGate — form-fallback baseline cap", () => {
+  test("form-fallback + full windows → still PASS but confidence capped at medium", () => {
+    const r = evaluateGate(bundle({ baselineSource: "form-fallback" }));
+    expect(r.gate).toBe("pass"); // does NOT fail — live mode proceeds tempered
+    expect(r.inputConfidence).toBe("medium"); // never "high"
+    expect(r.inputConfidence).not.toBe("high");
+    expect(r.reason).toContain("recent-form proxy");
+  });
+
+  test("form-fallback note also appears on a fail (low confidence preserved)", () => {
+    const r = evaluateGate(
+      bundle({
+        baselineSource: "form-fallback",
+        odds: { bookmakers: [], consensus: { home: 0, draw: 0, away: 0 } },
+      }),
+    );
+    expect(r.gate).toBe("fail");
+    expect(r.inputConfidence).toBe("low");
+    expect(r.reason).toContain("recent-form proxy");
+  });
 });
 
 // ── The fail boundary — the gate must fail closed ────────────────────────────
@@ -208,6 +248,56 @@ describe("evaluateGate — fail closed", () => {
     );
     expect(r.gate).toBe("fail");
     expect(r.checks.baselineAvailable).toBe(false);
+  });
+
+  test("MIN_BASELINE_MATCHES is 3", () => {
+    expect(MIN_BASELINE_MATCHES).toBe(3);
+  });
+
+  test("matchesPlayed below MIN_BASELINE_MATCHES → baseline unavailable → fail", () => {
+    const r = evaluateGate(
+      bundle({
+        baseline: {
+          home: {
+            // One match is no longer enough — below MIN_BASELINE_MATCHES (3).
+            matchesPlayed: MIN_BASELINE_MATCHES - 1,
+            goalsForPerHome: 2.0,
+            goalsAgainstPerHome: 0.5,
+          },
+          away: {
+            matchesPlayed: 14,
+            goalsForPerAway: 1.2,
+            goalsAgainstPerAway: 1.3,
+          },
+          league: { avgHomeGoals: 1.5, avgAwayGoals: 1.1 },
+        },
+      }),
+    );
+    expect(r.gate).toBe("fail");
+    expect(r.checks.baselineAvailable).toBe(false);
+    expect(r.missing.some((m) => m.includes("baseline"))).toBe(true);
+  });
+
+  test("matchesPlayed at exactly MIN_BASELINE_MATCHES (3) on both sides → baseline available", () => {
+    const r = evaluateGate(
+      bundle({
+        baseline: {
+          home: {
+            matchesPlayed: MIN_BASELINE_MATCHES,
+            goalsForPerHome: 1.7,
+            goalsAgainstPerHome: 1.0,
+          },
+          away: {
+            matchesPlayed: MIN_BASELINE_MATCHES,
+            goalsForPerAway: 1.2,
+            goalsAgainstPerAway: 1.3,
+          },
+          league: { avgHomeGoals: 1.5, avgAwayGoals: 1.1 },
+        },
+      }),
+    );
+    expect(r.checks.baselineAvailable).toBe(true);
+    expect(r.gate).toBe("pass");
   });
 
   test("multiple deficiencies all surface at once (no early bail)", () => {

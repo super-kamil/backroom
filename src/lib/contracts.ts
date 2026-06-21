@@ -144,6 +144,20 @@ export interface PrefetchBundle {
   odds: OddsData;
   /** API-Football's OWN model — cross-check reference only, never our estimate. */
   apiPredictions?: OutcomeProbs;
+  /**
+   * How the `baseline` rates were derived, so the Data Quality Gate can tell a
+   * real season aggregate apart from the LIVE recent-form proxy:
+   *   - "season"        — a season-to-date `/teams/statistics` aggregate (live)
+   *                       or an as-of-kickoff fixtures reconstruction (validation).
+   *   - "form-fallback" — the neutral-venue / data-thin LIVE fallback
+   *                       (`computeBaselineFromForm`) fired: rates come from each
+   *                       team's recent-form window, NOT opposition-adjusted and
+   *                       materially less calibrated. The gate caps confidence to
+   *                       at most "medium" when this is set.
+   * OPTIONAL: `undefined` means a normal season aggregate (the common case), so
+   * existing PrefetchBundle constructors and test fixtures compile unchanged.
+   */
+  baselineSource?: "season" | "form-fallback";
   /** ISO timestamps per data source, and confirmed-vs-probable flags. */
   dataTimestamps: Record<string, string>;
   /** Inputs that could not be fetched (drives the Data Quality Gate). */
@@ -245,7 +259,14 @@ export interface TraderReport {
     Outcome,
     { ourProb: number; fairProb: number; edge: number; hasValue: boolean }
   >;
-  /** Outcome with the best qualifying edge, or null if none clears threshold. */
+  /**
+   * The DETERMINISTIC "highest-qualifying-edge outcome" computed by
+   * `computeValue` (odds-math.ts) — the single outcome whose edge clears
+   * `valueThreshold` by the widest margin, or null when none qualifies. This is
+   * NOT a recommendation: it is a fixed arithmetic result. Agents (and the Head
+   * Coach) MUST copy it through verbatim — the backpressure validator enforces
+   * equality, so re-deriving or "improving" it is a validation failure.
+   */
   bestSelection: Outcome | null;
   valueThreshold: number;
   notes: string;
