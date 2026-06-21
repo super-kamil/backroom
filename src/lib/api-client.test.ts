@@ -82,6 +82,75 @@ test("getFixture maps a null venue to null", async () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// searchFixturesByDate — date-keyed fixture list for NL resolution
+// ─────────────────────────────────────────────────────────────────────────────
+
+test("searchFixturesByDate normalizes every row, drops id-less rows, and keys by date", async () => {
+  const { fn, calls } = stubFetch(() => ({
+    response: [
+      {
+        fixture: { id: 501, date: "2026-06-21T18:00:00+00:00", venue: { name: "V" }, status: { short: "NS" } },
+        league: { id: 1, name: "World Cup", season: 2026 },
+        teams: { home: { id: 1, name: "Belgium" }, away: { id: 2, name: "Iran" } },
+      },
+      {
+        fixture: { id: 502, date: "2026-06-21T21:00:00+00:00", venue: null, status: { short: "NS" } },
+        league: { id: 1, name: "World Cup", season: 2026 },
+        teams: { home: { id: 3, name: "Brazil" }, away: { id: 4, name: "Serbia" } },
+      },
+      // Malformed row with no fixture id → dropped (id normalizes to 0).
+      {
+        fixture: { date: "2026-06-21T12:00:00+00:00", status: { short: "NS" } },
+        league: { id: 1, name: "World Cup", season: 2026 },
+        teams: { home: { id: 5, name: "Ghost" }, away: { id: 6, name: "Phantom" } },
+      },
+    ],
+  }));
+
+  const client = createApiClient({ fetchFn: fn, cache: memCache() });
+  const fixtures = await client.searchFixturesByDate("2026-06-21");
+
+  expect(calls).toHaveLength(1);
+  expect(calls[0]).toContain("/fixtures");
+  expect(calls[0]).toContain("date=2026-06-21");
+
+  expect(fixtures.map((f) => f.id)).toEqual([501, 502]); // the id-less row is dropped
+  expect(fixtures[0]).toEqual({
+    id: 501,
+    league: { id: 1, name: "World Cup", season: 2026 },
+    date: "2026-06-21T18:00:00+00:00",
+    venue: "V",
+    status: "NS",
+    home: { id: 1, name: "Belgium" },
+    away: { id: 2, name: "Iran" },
+  });
+});
+
+test("searchFixturesByDate is FRESH by default (bypasses the cache)", async () => {
+  let calls = 0;
+  const fn = (async () => {
+    calls += 1;
+    return new Response(JSON.stringify({ response: [] }), { status: 200 });
+  }) as unknown as typeof fetch;
+
+  const client = createApiClient({ fetchFn: fn, cache: memCache() });
+  await client.searchFixturesByDate("2026-06-21");
+  await client.searchFixturesByDate("2026-06-21");
+  expect(calls).toBe(2); // no cache hit on the repeat
+});
+
+test("searchFixturesByDate passes a timezone when given and can opt into the cache", async () => {
+  const { fn, calls } = stubFetch(() => ({ response: [] }));
+  const client = createApiClient({ fetchFn: fn, cache: memCache() });
+
+  await client.searchFixturesByDate("2026-06-21", { fresh: false, timezone: "Europe/Brussels" });
+  await client.searchFixturesByDate("2026-06-21", { fresh: false, timezone: "Europe/Brussels" });
+
+  expect(calls[0]).toContain("timezone=Europe%2FBrussels");
+  expect(calls).toHaveLength(1); // fresh:false → the second identical call is served from cache
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // getRecentForm
 // ─────────────────────────────────────────────────────────────────────────────
 

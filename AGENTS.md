@@ -57,7 +57,8 @@ This is the single most important rule of the factory.
   deterministically by `log-prediction.ts` (`buildVersionStamp`), not transcribed
   by the Head Coach.
 - **Prefetch happens before any LLM runs.** No agent touches the network. The only
-  networked code is `api-client.ts`, invoked by `prefetch.ts`/`settle.ts`/`backtest.ts`.
+  networked code is `api-client.ts`, invoked by
+  `resolve-fixture.ts`/`prefetch.ts`/`settle.ts`/`backtest.ts`.
 - Every agent output is gated by the deterministic **backpressure validator**
   (`validators.ts`, via `validate.ts`) before it is accepted: schema → bounds →
   consistency → **cross-check** (the numbers an agent copied must EQUAL the
@@ -96,6 +97,7 @@ API-Football v3 endpoints via `api-client.ts`.
 
 | Agent | Reads | Backing data / API-Football endpoint |
 | --- | --- | --- |
+| (resolve) | the slash-command argument (team names + optional date) | `/fixtures?date=` → pure name match (`fixture-match.ts`) → a fixture id. Deterministic, no LLM; **skipped** when the argument is already a numeric id. |
 | (prefetch) | — | **live**: `/fixtures`, `/leagues` (coverage), `/teams/statistics`, `/standings`, `/odds` (fresh), `/predictions`. **validation**: `/fixtures` (season) → as-of baseline/form (no lookahead), `/odds` (cached historical) |
 | Data Quality Gate | `prefetch.json` | deterministic — odds present, baseline present, both form windows ≥ `MIN_FIXTURES` (5) |
 | **form-scout** | `bundle.form` (short window, last ~10) | live `/fixtures?team&last`; validation `getRecentFormBySeason(beforeDate)` → `FormWindow` |
@@ -115,8 +117,11 @@ API-Football v3 endpoints via `api-client.ts`.
 
 ```mermaid
 flowchart TD
-    U([/analyze-match fixtureId]) --> HC[Head Coach · orchestrator · high_reasoning]
-    HC --> PF[[prefetch.ts · deterministic · MODE-aware]]
+    U(["/analyze-match · fixtureId or &quot;home vs away&quot;"]) --> HC[Head Coach · orchestrator · high_reasoning]
+    HC -->|team names| RES[[resolve-fixture.ts · deterministic · names + date → fixtureId]]
+    HC -->|fixture id| PF[[prefetch.ts · deterministic · MODE-aware]]
+    RES -->|resolved| PF
+    RES -->|ambiguous / none| ASK([Ask human for a fixture id])
     PF --> DQ{Data Quality Gate · deterministic}
     DQ -->|fail| NB([NO-BET / insufficient data])
     DQ -->|pass| FS[Form Scout · standard_reasoning]

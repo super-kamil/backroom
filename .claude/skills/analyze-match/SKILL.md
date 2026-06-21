@@ -1,6 +1,6 @@
 ---
 name: analyze-match
-description: Analyze an upcoming football match and challenge the bookmaker's 1X2 (home/draw/away) odds by forming an independent, calibrated probability estimate and comparing it to the vig-free market price. Triggered by /analyze-match <fixtureId>. Use whenever the user wants a match analyzed, a bet recommendation, or a value/edge check on 1X2 odds.
+description: Analyze an upcoming football match and challenge the bookmaker's 1X2 (home/draw/away) odds by forming an independent, calibrated probability estimate and comparing it to the vig-free market price. Triggered by /analyze-match <fixtureId | "teamA vs teamB" [date]>. Use whenever the user wants a match analyzed, a bet recommendation, or a value/edge check on 1X2 odds.
 ---
 
 # Head Coach — analyze-match runbook
@@ -48,10 +48,40 @@ on.
 
 ---
 
-## Step 0 — Parse the argument
-Read the `<fixtureId>` from the slash-command argument. It is an integer
-API-Football fixture id. If it is missing or non-numeric, stop and ask the user for
-a valid fixtureId. Let `<id>` denote it below.
+## Step 0 — Resolve the fixture id from the argument
+The argument is EITHER (a) a bare positive integer API-Football fixture id, or
+(b) a natural-language match description such as `belgium vs iran`, optionally with
+a day hint (`today`, `tonight`, `tomorrow`) or an explicit date. Let `<id>` denote
+the resolved integer fixture id used by every step below.
+
+1. **If the argument is a positive integer** → that IS `<id>`; skip to Step 1.
+2. **Otherwise resolve it deterministically** (the script does the data work — NO
+   LLM math, NO guessing of ids):
+   - Turn the day hint into a date: `today`/`tonight` → today, `tomorrow` →
+     today + 1, an explicit date → that date. If there is no hint, default to today
+     (the script defaults to today's UTC date when `--date` is omitted).
+   - Run the resolver (network access stays inside `api-client.ts`):
+
+     ```
+     bun run src/scripts/resolve-fixture.ts "<teamA> vs <teamB>" [--date <YYYY-MM-DD>] [--days <N>]
+     ```
+
+     Pass `--days 2` when a late kickoff might land on the next UTC day, or to widen
+     the search after a `none` result.
+   - Branch on the result (it prints a JSON object to stdout and sets an exit code):
+     - **ok** (exit 0) → take `fixtureId` as `<id>`. Tell the user which fixture
+       matched (teams, league, kickoff) and continue to Step 1.
+     - **ambiguous** (exit 2) → present the `candidates[]` (id, teams, league,
+       kickoff) and ask the user which fixture id to use. **Do not pick one
+       yourself.** Stop until they answer.
+     - **none** (exit 3) → tell the user no fixture matched that description in the
+       searched window; suggest a different date or `--days`, or a fixture id.
+       **STOP** — do not fabricate an id.
+     - **usage/config error** (exit 1) → surface the message (e.g. missing API key)
+       and stop.
+
+If the description is too vague to extract two team names (only one side, no
+opponent), ask the user to name both teams (or give a fixture id) before resolving.
 
 ## Step 1 — DETERMINISTIC PREFETCH + gate (runs before any LLM)
 Run:

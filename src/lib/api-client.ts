@@ -87,6 +87,18 @@ function pctToFraction(s: unknown): number {
 export interface ApiClient {
   getCoverage(leagueId: number, season: number): Promise<Coverage | null>;
   getFixture(fixtureId: number): Promise<FixtureRef | null>;
+  /**
+   * Every fixture scheduled on a given calendar date (provider timezone, default
+   * UTC), normalized to FixtureRef[]. Powers natural-language fixture resolution
+   * ("belgium vs iran" → a fixture id) so the chain can be driven by team names
+   * instead of a hand-found id. Live schedules can shift, so the default is a
+   * FRESH (cache-bypassing) fetch; pass `{ fresh: false }` for an immutable past
+   * date to spare the rate limit.
+   */
+  searchFixturesByDate(
+    dateISO: string,
+    opts?: { fresh?: boolean; timezone?: string },
+  ): Promise<FixtureRef[]>;
   getRecentForm(teamId: number, last: number): Promise<FormWindow>;
   /**
    * Historical form window for VALIDATION mode. Pulls a whole (league, season) of
@@ -239,6 +251,28 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
     const arr = responseArray(json);
     const row = arr[0];
     return row ? normalizeFixture(row) : null;
+  }
+
+  async function searchFixturesByDate(
+    dateISO: string,
+    opts: { fresh?: boolean; timezone?: string } = {},
+  ): Promise<FixtureRef[]> {
+    // Schedules for "today" can still change, so default to FRESH; a past date is
+    // immutable and the caller may opt into the STABLE cache instead.
+    const params: Record<string, string | number> = { date: dateISO };
+    if (opts.timezone !== undefined && opts.timezone !== "") {
+      params.timezone = opts.timezone;
+    }
+    const json = await request("/fixtures", params, { fresh: opts.fresh ?? true });
+    const arr = responseArray(json);
+
+    const fixtures: FixtureRef[] = [];
+    for (const row of arr) {
+      const fx = normalizeFixture(row);
+      // Defensive: skip rows that normalized without a usable id.
+      if (fx.id > 0) fixtures.push(fx);
+    }
+    return fixtures;
   }
 
   async function getRecentForm(teamId: number, last: number): Promise<FormWindow> {
@@ -451,6 +485,7 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
   return {
     getCoverage,
     getFixture,
+    searchFixturesByDate,
     getRecentForm,
     getRecentFormBySeason,
     getLeagueSeasonResults,

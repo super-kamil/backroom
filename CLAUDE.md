@@ -25,6 +25,30 @@ Read the spine before writing code: `src/lib/contracts.ts`, `src/lib/config.ts`,
 - Every agent report passes the backpressure validator (`validators.ts` via
   `src/scripts/validate.ts`) before it is accepted: schema → bounds → consistency.
 
+## Run modes — live vs validation (set MODE correctly)
+
+- **Two modes source data differently; `MODE` (`config.ts`) defaults to `validation`.**
+  - `live` — an **upcoming** fixture: season-to-date `/teams/statistics` baseline,
+    last-N form across **all** competitions, FRESH odds. **This is the mode for
+    `/analyze-match`.**
+  - `validation` — a **completed** season replayed AS-OF each kickoff (no lookahead)
+    for backtesting / calibration (`backtest.ts`, `/review-matchday`). It restricts
+    form and baseline to that competition's pre-kickoff fixtures, so it will
+    (correctly) fail the gate on an upcoming match — the wrong path for live analysis.
+- **`/analyze-match` is LIVE analysis — run prefetch with `MODE=live`.** Because the
+  default is `validation`, until `.env` sets `MODE=live` invoke prefetch as
+  `MODE=live bun run src/scripts/prefetch.ts <id>` (do the same for any one-off
+  fixture lookup). A run started under `validation` fails the gate for the wrong
+  reason and must not be presented as a live verdict.
+- **Resolve team names → fixtureId first.** `/analyze-match` takes an integer
+  API-Football fixture id. When the user names teams + a date ("Belgium vs Iran
+  today"), look the id up via `/fixtures?date=YYYY-MM-DD` (the only network access is
+  still through `api-client.ts` / the prefetch path) before starting the runbook.
+- **Only competitions with `statistics` coverage can be priced.** The independent
+  Poisson baseline needs season-to-date team scoring stats; a competition whose
+  coverage reports `statistics:false` (e.g. the World Cup on the free tier) has no
+  baseline to build and correctly ends in NO-BET. That is the gate working, not a bug.
+
 ## Decision rules
 
 - **NO-BET is a first-class output.** A run that finds no qualifying edge, or fails

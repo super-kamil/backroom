@@ -76,8 +76,11 @@ log can *justify* building them later:
 
 ```mermaid
 flowchart TD
-    U([/analyze-match fixtureId]) --> HC[Head Coach · orchestrator · high_reasoning]
-    HC --> PF[[prefetch.ts · deterministic · MODE-aware]]
+    U(["/analyze-match · fixtureId or &quot;home vs away&quot;"]) --> HC[Head Coach · orchestrator · high_reasoning]
+    HC -->|team names| RES[[resolve-fixture.ts · deterministic · names + date → fixtureId]]
+    HC -->|fixture id| PF[[prefetch.ts · deterministic · MODE-aware]]
+    RES -->|resolved| PF
+    RES -->|ambiguous / none| ASK([Ask human for a fixture id])
     PF --> DQ{Data Quality Gate · deterministic}
     DQ -->|fail| NB([NO-BET / insufficient data])
     DQ -->|pass| FS[Form Scout · standard_reasoning]
