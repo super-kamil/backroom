@@ -20,6 +20,7 @@ import {
   computeOneXTwo,
   expectedValue,
   fixedPctStake,
+  funPicks,
 } from "./odds-math.ts";
 
 // Symmetric baseline: both teams average exactly the league rate.
@@ -265,5 +266,36 @@ describe("fixedPctStake", () => {
   });
   test("never negative", () => {
     expect(fixedPctStake(-100, 0.02, 50)).toBe(0);
+  });
+});
+
+describe("funPicks", () => {
+  // Belgium vs Iran consensus: home 1.43 / draw 4.60 / away 7.50.
+  const rawOdds: OutcomeOdds = { home: 1.43, draw: 4.6, away: 7.5 };
+  const fairProbs = { home: 0.666, draw: 0.207, away: 0.127 };
+
+  test("ranks favourite as safest, longest price as long-shot", () => {
+    const picks = funPicks(rawOdds, fairProbs);
+    expect(picks.safest.outcome).toBe("home");
+    expect(picks.safest.odds).toBe(1.43);
+    expect(picks.balanced.outcome).toBe("draw");
+    expect(picks.longshot.outcome).toBe("away");
+    expect(picks.longshot.odds).toBe(7.5);
+  });
+
+  test("carries the matching market fair prob through for each pick", () => {
+    const picks = funPicks(rawOdds, fairProbs);
+    expect(picks.safest.fairProb).toBeCloseTo(0.666, 4);
+    expect(picks.longshot.fairProb).toBeCloseTo(0.127, 4);
+  });
+
+  test("does not depend on outcome order in the input", () => {
+    // Away-favourite market: away has the lowest odds.
+    const picks = funPicks(
+      { home: 5.0, draw: 3.8, away: 1.6 },
+      { home: 0.18, draw: 0.25, away: 0.57 },
+    );
+    expect(picks.safest.outcome).toBe("away");
+    expect(picks.longshot.outcome).toBe("home");
   });
 });

@@ -343,3 +343,55 @@ export function fixedPctStake(
 ): number {
   return Math.max(0, Math.min(bankroll * stakePct, maxStake));
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Entertainment ("just for fun") picks — NOT betting advice
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** One entertainment pick: an outcome, its decimal odds, and the market's fair prob. */
+export interface FunPick {
+  outcome: Outcome;
+  odds: number;
+  /** Vig-free fair probability of this outcome (the trustworthy market read). */
+  fairProb: number;
+}
+
+/** The three flavours of for-fun pick, by market price. */
+export interface FunPicks {
+  /** Lowest odds — the market favourite. Highest win chance, smallest payout. */
+  safest: FunPick;
+  /** Middle odds. */
+  balanced: FunPick;
+  /** Highest odds — the long-shot. Lowest win chance, biggest payout. */
+  longshot: FunPick;
+}
+
+/**
+ * Rank the three 1X2 outcomes by market price into safest / balanced / long-shot.
+ *
+ * This is **NOT a betting recommendation and carries no edge** — it is a purely
+ * deterministic ordering of the market's own prices, surfaced only as an
+ * entertainment aside when the real verdict is NO-BET. It is built from the
+ * MARKET (decimal odds + vig-free fair probs), never from our model estimate, so
+ * it stays trustworthy even when the model is degenerate. Every for-fun pick is
+ * negative-EV (you pay the vig); the caller must present it as such.
+ */
+export function funPicks(
+  rawOdds: OutcomeOdds,
+  fairProbs: OutcomeProbs,
+): FunPicks {
+  const ranked: FunPick[] = (["home", "draw", "away"] as const)
+    .map((outcome) => ({
+      outcome,
+      odds: rawOdds[outcome],
+      fairProb: fairProbs[outcome],
+    }))
+    // Ascending by odds: favourite first, long-shot last. Stable for ties.
+    .sort((a, b) => a.odds - b.odds);
+
+  // Exactly three 1X2 outcomes, so indices 0/1/2 always exist.
+  const safest = ranked[0] as FunPick;
+  const balanced = ranked[1] as FunPick;
+  const longshot = ranked[2] as FunPick;
+  return { safest, balanced, longshot };
+}

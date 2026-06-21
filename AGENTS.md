@@ -138,6 +138,8 @@ flowchart TD
     SH --> DEC[Head Coach · final decision · high_reasoning]
     DEC -. runs .-> LP[[log-prediction.ts · deterministic version stamp]]
     DEC --> OUT([Report or NO-BET])
+    OUT -. if NO-BET · for fun only .-> FUN[[fun-pick.ts · deterministic · entertainment, NOT advice]]
+    NBU -. for fun only .-> FUN
     LP --> LOG[(Calibration log · bun:sqlite)]
     BT[[backtest.ts · validation MODE · deterministic · no LLM]] --> LOG
     subgraph Review["/review-matchday · run manually after results"]

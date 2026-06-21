@@ -96,6 +96,8 @@ flowchart TD
     SH --> DEC[Head Coach · final decision · high_reasoning]
     DEC -. runs .-> LP[[log-prediction.ts · deterministic version stamp]]
     DEC --> OUT([Report or NO-BET])
+    OUT -. if NO-BET · for fun only .-> FUN[[fun-pick.ts · deterministic · entertainment, NOT advice]]
+    NBU -. for fun only .-> FUN
     LP --> LOG[(Calibration log · bun:sqlite)]
     BT[[backtest.ts · validation MODE · deterministic · no LLM]] --> LOG
     subgraph Review["/review-matchday · run manually after results"]
@@ -247,6 +249,7 @@ bun run src/scripts/compute.ts  <fixtureId>    # → runs/<id>/quant-math.json (
 bun run src/scripts/devig.ts    <fixtureId>    # → runs/<id>/trader-math.json (reads quant-math.json)
 bun run src/scripts/plausibility.ts <fixtureId> # → runs/<id>/plausibility.json (degenerate-estimate pre-check; exit 2 = NO-BET)
 bun run src/scripts/stake.ts    <fixtureId>    # → runs/<id>/risk-math.json
+bun run src/scripts/fun-pick.ts <fixtureId>    # → runs/<id>/fun-pick.json (entertainment ranking of market prices; NOT advice)
 bun run src/scripts/validate.ts <agent> <id>   # VALID/INVALID gate (schema/bounds/consistency + math cross-check)
 
 bun run src/scripts/log-prediction.ts <id>     # decision.json → calibration log (deterministic version stamp)
@@ -310,6 +313,7 @@ backroom/
 │     ├─ devig.ts                       # de-vig + value (reads quant-math.json) → trader-math.json
 │     ├─ plausibility.ts                # model-plausibility pre-check (degenerate estimate?) → plausibility.json
 │     ├─ stake.ts                       # stake sizing + EV → risk-math.json
+│     ├─ fun-pick.ts                    # entertainment ranking of market prices (NOT advice) → fun-pick.json
 │     ├─ validate.ts                    # agent-report validation gate (+ math cross-check)
 │     ├─ log-prediction.ts             # decision → calibration log (deterministic version stamp)
 │     ├─ settle.ts                      # resolve outcomes + Brier

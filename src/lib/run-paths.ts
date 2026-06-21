@@ -16,6 +16,7 @@
  *     risk.json         ← RiskReport
  *     sharp.json        ← SharpReport
  *     decision.json     ← FinalDecision
+ *     fun-pick.json     ← entertainment ranking of the market prices (NOT advice)
  *
  * Determinism boundary: the *-math.json files are written by deterministic
  * scripts (pure arithmetic). The agent then reads its *-math.json, adds
@@ -47,7 +48,8 @@ export type RunArtifact =
   | "risk-math"
   | "risk"
   | "sharp"
-  | "decision";
+  | "decision"
+  | "fun-pick";
 
 export function runPath(
   fixtureId: number | string,

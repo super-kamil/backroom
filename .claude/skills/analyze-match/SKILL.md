@@ -253,7 +253,36 @@ Read `runs/<id>/decision.json` and present a clear, honest summary:
 Tone: non-promotional and honest. State the genuine ceiling of the estimate. Never
 encourage chasing losses, never overstate edge, never imply certainty.
 
----
+## Step 9 — (optional) "JUST FOR FUN" pick — ONLY on NO-BET, ONLY if odds exist
+
+NO-BET is the answer, but a user may still want a flutter for the entertainment of
+it. When (and only when) the recommendation is **NO-BET** AND market odds are
+available (a `trader-math.json` exists — true after the Step 1b pre-check or the
+full chain; NOT true on a gate FAIL caused by missing odds), you MAY append a short
+"just for fun" aside. Skip it entirely if there are no odds.
+
+Generate the picks deterministically (never hand-pick, never use our model estimate
+— the market is the trustworthy source):
+
+```
+bun run src/scripts/fun-pick.ts <id>
+```
+
+Read `runs/<id>/fun-pick.json` (a `FunPicks`) and present all three — `safest`
+(the favourite), `balanced`, `longshot` — each as `outcome @ odds (market ~XX%)`.
+
+Framing is NON-NEGOTIABLE:
+
+- Lead with, and keep, **NO-BET as the actual recommendation**. The fun pick is an
+  aside, not a reversal.
+- Label it clearly as **entertainment, not advice**. State plainly that there is
+  **no edge** and every pick is **negative-EV** (you pay the bookmaker's margin).
+- Suggest only a **tiny, for-fun stake** (pocket change) and add a brief
+  **responsible-gambling** reminder (only stake what you can afford to lose; never
+  chase losses). Never imply the fun pick is likely to win or makes the NO-BET
+  "safe to ignore".
+- When the model was degenerate (Step 1b `reliable: false`), say the fun picks come
+  from the market prices, not our (unreliable) estimate.
 
 ## GUARDRAILS (summary)
 
