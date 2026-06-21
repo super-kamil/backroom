@@ -198,7 +198,11 @@ describe("computeValue", () => {
   test("carries the de-vig math and flags value only above the threshold", () => {
     const fair = devigProportional(odds);
     // Beat fair home by > 0.05; sit below fair on draw/away.
-    const our = { home: fair.home + 0.08, draw: fair.draw - 0.04, away: fair.away - 0.04 };
+    const our = {
+      home: fair.home + 0.08,
+      draw: fair.draw - 0.04,
+      away: fair.away - 0.04,
+    };
     const v = computeValue(our, odds, "proportional", 0.05);
     expect(v.fairProbs).toEqual(fair);
     expect(v.overround).toBeCloseTo(overround(impliedProbs(odds)), 10);
@@ -211,17 +215,26 @@ describe("computeValue", () => {
 
   test("no outcome clears the threshold → bestSelection null (NO-BET)", () => {
     const fair = devigProportional(odds);
-    const our = { home: fair.home + 0.01, draw: fair.draw, away: fair.away - 0.01 };
+    const our = {
+      home: fair.home + 0.01,
+      draw: fair.draw,
+      away: fair.away - 0.01,
+    };
     const v = computeValue(our, odds, "proportional", 0.05);
     expect(v.bestSelection).toBeNull();
-    expect(Object.values(v.value).every((e) => e.hasValue === false)).toBe(true);
+    expect(Object.values(v.value).every((e) => e.hasValue === false)).toBe(
+      true,
+    );
   });
 
   test("edge identity holds for every outcome (edge === ourProb − fairProb)", () => {
     const our = { home: 0.5, draw: 0.3, away: 0.2 };
     const v = computeValue(our, odds, "proportional", 0.05);
     for (const o of ["home", "draw", "away"] as const) {
-      expect(v.value[o].edge).toBeCloseTo(v.value[o].ourProb - v.value[o].fairProb, 12);
+      expect(v.value[o].edge).toBeCloseTo(
+        v.value[o].ourProb - v.value[o].fairProb,
+        12,
+      );
     }
   });
 

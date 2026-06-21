@@ -1,7 +1,7 @@
 # AGENTS.md — multi-agent configuration
 
 Tool-agnostic description of the **backroom** agent factory: who the agents are,
-what they may decide, what they must *not*, and how they hand off to one another.
+what they may decide, what they must _not_, and how they hand off to one another.
 This file is deliberately independent of any particular agent runtime — it
 describes the contract, not a vendor's harness.
 
@@ -9,14 +9,14 @@ describes the contract, not a vendor's harness.
 
 ## Agent roster
 
-| Agent | Role | Model tier | Why this tier |
-| --- | --- | --- | --- |
-| **head-coach** | Orchestrator; owns the final BET / NO-BET decision | `high_reasoning` | Integrates every report, weighs dissent, and is accountable for the call — the highest-value judgment in the system. |
-| **form-scout** | Qualitative read of recent form / momentum | `standard_reasoning` | Bounded interpretation of a small structured slice; no novel reasoning needed. |
-| **quant** | Sanity-checks the deterministic Poisson estimate | `standard_reasoning` | The math is done by a script; the agent only interprets and cross-checks it. |
-| **trader** | Interprets de-vig + value vs our estimate | `standard_reasoning` | The de-vig/value math is deterministic; the agent judges whether the edge is real. |
-| **risk-manager** | Bankroll discipline + responsible-gambling gate | `standard_reasoning` | Applies fixed rules with judgment; the sizing math is deterministic. |
-| **sharp** | Red-team critic in **fresh context**; tries to kill the bet | `high_reasoning` | Adversarial reasoning against a confident conclusion is where a strong model earns its keep. |
+| Agent            | Role                                                        | Model tier           | Why this tier                                                                                                        |
+| ---------------- | ----------------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **head-coach**   | Orchestrator; owns the final BET / NO-BET decision          | `high_reasoning`     | Integrates every report, weighs dissent, and is accountable for the call — the highest-value judgment in the system. |
+| **form-scout**   | Qualitative read of recent form / momentum                  | `standard_reasoning` | Bounded interpretation of a small structured slice; no novel reasoning needed.                                       |
+| **quant**        | Sanity-checks the deterministic Poisson estimate            | `standard_reasoning` | The math is done by a script; the agent only interprets and cross-checks it.                                         |
+| **trader**       | Interprets de-vig + value vs our estimate                   | `standard_reasoning` | The de-vig/value math is deterministic; the agent judges whether the edge is real.                                   |
+| **risk-manager** | Bankroll discipline + responsible-gambling gate             | `standard_reasoning` | Applies fixed rules with judgment; the sizing math is deterministic.                                                 |
+| **sharp**        | Red-team critic in **fresh context**; tries to kill the bet | `high_reasoning`     | Adversarial reasoning against a confident conclusion is where a strong model earns its keep.                         |
 
 ### The two Opus seats
 
@@ -95,17 +95,17 @@ Each agent is handed **only its focused slice** of the `PrefetchBundle`, plus (f
 the math-backed agents) its deterministic `*-math.json`. Data comes from
 API-Football v3 endpoints via `api-client.ts`.
 
-| Agent | Reads | Backing data / API-Football endpoint |
-| --- | --- | --- |
-| (resolve) | the slash-command argument (team names + optional date) | `/fixtures?date=` → pure name match (`fixture-match.ts`) → a fixture id. Deterministic, no LLM; **skipped** when the argument is already a numeric id. |
-| (prefetch) | — | **live**: `/fixtures`, `/leagues` (coverage), `/teams/statistics`, `/standings`, `/odds` (fresh), `/predictions`. **validation**: `/fixtures` (season) → as-of baseline/form (no lookahead), `/odds` (cached historical) |
-| Data Quality Gate | `prefetch.json` | deterministic — odds present, baseline present, both form windows ≥ `MIN_FIXTURES` (5) |
-| **form-scout** | `bundle.form` (short window, last ~10) | live `/fixtures?team&last`; validation `getRecentFormBySeason(beforeDate)` → `FormWindow` |
-| **quant** | `bundle.baseline` + `quant-math.json` | live `/teams/statistics` + `/standings`; validation as-of `computeBaselineFromFixtures` → Poisson `computeOneXTwo` |
-| **trader** | `bundle.odds.consensus` + `quant-math.json` probs → `trader-math.json` | `/odds` (consensus median across books, Match Winner / bet id 1) → shared `computeValue` (de-vig + value) |
-| **risk-manager** | `trader-math.json` → `risk-math.json` | deterministic `fixedPctStake` / `expectedValue` over `BANKROLL`/`STAKE_PCT`/`MAX_STAKE` |
-| **sharp** | raw data + the proposed conclusion (NOT the Quant's reasoning) | sees the inputs in fresh context to attack independently |
-| **head-coach** | all reports | integrates everything → `FinalDecision` → `log-prediction.ts` stamps the version deterministically → calibration log |
+| Agent             | Reads                                                                  | Backing data / API-Football endpoint                                                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| (resolve)         | the slash-command argument (team names + optional date)                | `/fixtures?date=` → pure name match (`fixture-match.ts`) → a fixture id. Deterministic, no LLM; **skipped** when the argument is already a numeric id.                                                                   |
+| (prefetch)        | —                                                                      | **live**: `/fixtures`, `/leagues` (coverage), `/teams/statistics`, `/standings`, `/odds` (fresh), `/predictions`. **validation**: `/fixtures` (season) → as-of baseline/form (no lookahead), `/odds` (cached historical) |
+| Data Quality Gate | `prefetch.json`                                                        | deterministic — odds present, baseline present, both form windows ≥ `MIN_FIXTURES` (5)                                                                                                                                   |
+| **form-scout**    | `bundle.form` (short window, last ~10)                                 | live `/fixtures?team&last`; validation `getRecentFormBySeason(beforeDate)` → `FormWindow`                                                                                                                                |
+| **quant**         | `bundle.baseline` + `quant-math.json`                                  | live `/teams/statistics` + `/standings`; validation as-of `computeBaselineFromFixtures` → Poisson `computeOneXTwo`                                                                                                       |
+| **trader**        | `bundle.odds.consensus` + `quant-math.json` probs → `trader-math.json` | `/odds` (consensus median across books, Match Winner / bet id 1) → shared `computeValue` (de-vig + value)                                                                                                                |
+| **risk-manager**  | `trader-math.json` → `risk-math.json`                                  | deterministic `fixedPctStake` / `expectedValue` over `BANKROLL`/`STAKE_PCT`/`MAX_STAKE`                                                                                                                                  |
+| **sharp**         | raw data + the proposed conclusion (NOT the Quant's reasoning)         | sees the inputs in fresh context to attack independently                                                                                                                                                                 |
+| **head-coach**    | all reports                                                            | integrates everything → `FinalDecision` → `log-prediction.ts` stamps the version deterministically → calibration log                                                                                                     |
 
 > Two data windows are kept strictly separate: the **short form window**
 > (`FormWindow`, momentum, Form Scout only) and the **season-long baseline**
@@ -154,5 +154,5 @@ diagram above MUST be updated in the same change.**
 A stale diagram is worse than no diagram — it actively misleads. Treat the diagram,
 this roster table, the per-agent mapping, and `AGENT_MODELS`/`AGENT_PROMPT_VERSIONS`
 in `src/lib/config.ts` as **a single coupled unit**. If you add a scout, swap a model
-tier, or reorder the chain, the table *and* the diagram change before the work is
+tier, or reorder the chain, the table _and_ the diagram change before the work is
 "done". Keeping them in sync is part of done, not a follow-up.

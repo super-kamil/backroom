@@ -41,7 +41,12 @@ function pct(x: number | null, digits = 1): string {
 
 /** Print a predicted-vs-observed reliability table. */
 function printReliability(
-  buckets: Array<{ range: [number, number]; count: number; predictedAvg: number; observedFreq: number }>,
+  buckets: Array<{
+    range: [number, number];
+    count: number;
+    predictedAvg: number;
+    observedFreq: number;
+  }>,
 ): void {
   console.log("  range          n   predicted  observed");
   for (const b of buckets) {
@@ -80,7 +85,11 @@ try {
     reliabilityMulticlass: reliabilityMulticlass(calib),
   };
 
-  const metrics = { generatedAt: new Date().toISOString(), betting, validation };
+  const metrics = {
+    generatedAt: new Date().toISOString(),
+    betting,
+    validation,
+  };
 
   // ── Readable report ──────────────────────────────────────────────────────────
   console.log("=== Betting metrics (live-chain settled predictions) ===");
@@ -97,7 +106,9 @@ try {
 
   console.log("");
   console.log("=== Validation metrics (backtest calibration) ===");
-  console.log(`calibration rows: ${validation.recordCount} (settled ${validation.settledCount})`);
+  console.log(
+    `calibration rows: ${validation.recordCount} (settled ${validation.settledCount})`,
+  );
   console.log(
     `multiclass Brier: ${fmt(validation.multiclassBrier)}  (base-rate ${fmt(validation.baseRateBrier)} — below base-rate = real skill)`,
   );

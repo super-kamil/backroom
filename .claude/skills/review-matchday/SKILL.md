@@ -16,6 +16,7 @@ file (`data/metrics.json`) and report on it.
 > outcomes exist to settle against.
 
 ## Step 1 — SETTLE (deterministic)
+
 Run:
 
 ```
@@ -29,6 +30,7 @@ here. If it reports rows still open (matches not yet finished), that is normal �
 settle on a later run.
 
 ## Step 2 — COMPUTE (deterministic)
+
 Run:
 
 ```
@@ -47,6 +49,7 @@ file the summary step reads:
   flat-stake value P/L. May be empty if no backtest has been run — that is fine.
 
 ## Step 3 — SUMMARIZE (Sonnet-level reporting — no high-stakes reasoning)
+
 Read `data/metrics.json` and write a **plain-language matchday review**. This is a
 reporting task, not a reasoning task: describe what the numbers say, do not invent
 analysis beyond them. Cover:
@@ -68,13 +71,14 @@ analysis beyond them. Cover:
   - a **model** assignment,
   - a **threshold** (`VALUE_THRESHOLD`, stake caps),
   - the **de-vig method** (`proportional` / `power` / `shin`).
-  Make clear these are suggestions requiring human sign-off, not actions taken.
+    Make clear these are suggestions requiring human sign-off, not actions taken.
 
 Tone: honest and non-promotional. If the sample is too small to conclude anything,
 say so plainly rather than over-reading noise. Surface miscalibration candidly —
 the point of this review is to catch the model fooling itself.
 
 ## GUARDRAILS
+
 - The LLM **never computes** metrics and **never edits** the calibration log or old
   runs — it only reads `data/metrics.json` and writes prose.
 - All tuning suggestions are **proposals for human approval**, never auto-applied.

@@ -9,17 +9,26 @@
  */
 
 import { test, expect, describe } from "bun:test";
-import type { MatchResult } from "./contracts.ts";
+import type { FormWindow, MatchResult, MatchSummary } from "./contracts.ts";
 import {
   MIN_PRIOR_MATCHES,
+  MIN_FORM_SPLIT,
   computeLeagueAveragesAsOf,
   computeTeamRatesAsOf,
   computeBaselineFromFixtures,
+  computeBaselineFromForm,
 } from "./historical-baseline.ts";
 
 // ── Fixture builder ──────────────────────────────────────────────────────────
 
-function mr(id: number, date: string, home: number, away: number, gh: number, ga: number): MatchResult {
+function mr(
+  id: number,
+  date: string,
+  home: number,
+  away: number,
+  gh: number,
+  ga: number,
+): MatchResult {
   return {
     fixtureId: id,
     date,
@@ -59,7 +68,10 @@ describe("computeLeagueAveragesAsOf", () => {
   });
 
   test("no prior matches → 0/0 (lets the caller detect insufficient warmup)", () => {
-    expect(computeLeagueAveragesAsOf([], CUTOFF)).toEqual({ avgHomeGoals: 0, avgAwayGoals: 0 });
+    expect(computeLeagueAveragesAsOf([], CUTOFF)).toEqual({
+      avgHomeGoals: 0,
+      avgAwayGoals: 0,
+    });
   });
 
   test("a match AT the cutoff is excluded (strict <)", () => {
@@ -121,7 +133,12 @@ describe("computeBaselineFromFixtures", () => {
 
   test("NO LOOKAHEAD: adding at-cutoff + future matches leaves the baseline identical", () => {
     const clean = computeBaselineFromFixtures(PRIOR, 1, 2, CUTOFF);
-    const withFuture = computeBaselineFromFixtures([...PRIOR, AT_CUTOFF, AFTER], 1, 2, CUTOFF);
+    const withFuture = computeBaselineFromFixtures(
+      [...PRIOR, AT_CUTOFF, AFTER],
+      1,
+      2,
+      CUTOFF,
+    );
     expect(withFuture).toEqual(clean);
   });
 
@@ -140,5 +157,93 @@ describe("computeBaselineFromFixtures", () => {
     // Everything is on/after the cutoff → zero warmup.
     const future = [AT_CUTOFF, AFTER];
     expect(computeBaselineFromFixtures(future, 1, 2, CUTOFF)).toBeNull();
+  });
+});
+
+// ── LIVE recent-form fallback baseline ───────────────────────────────────────
+
+/** Build a MatchSummary from the subject team's perspective. */
+function ms(
+  home: boolean,
+  goalsFor: number,
+  goalsAgainst: number,
+  date = "2026-06-01T00:00:00+00:00",
+): MatchSummary {
+  return {
+    fixtureId: 0,
+    date,
+    opponent: { id: 999, name: "Opp" },
+    home,
+    goalsFor,
+    goalsAgainst,
+    result: goalsFor > goalsAgainst ? "W" : goalsFor < goalsAgainst ? "L" : "D",
+  };
+}
+
+const fw = (matches: MatchSummary[]): FormWindow => ({
+  windowSize: matches.length,
+  matches,
+});
+
+describe("computeBaselineFromForm", () => {
+  test("MIN_FORM_SPLIT is 3", () => {
+    expect(MIN_FORM_SPLIT).toBe(3);
+  });
+
+  test("uses each team's venue split when both sides have >= MIN_FORM_SPLIT games", () => {
+    // Home team: 3 home games scoring 2/2/2, conceding 0/0/0; plus an away game.
+    const homeForm = fw([
+      ms(true, 2, 0),
+      ms(true, 2, 0),
+      ms(true, 2, 0),
+      ms(false, 1, 1),
+    ]);
+    // Away team: 3 away games scoring 1/1/1, conceding 2/2/2; plus a home game.
+    const awayForm = fw([
+      ms(false, 1, 2),
+      ms(false, 1, 2),
+      ms(false, 1, 2),
+      ms(true, 3, 0),
+    ]);
+
+    const b = computeBaselineFromForm(homeForm, awayForm);
+    expect(b).not.toBeNull();
+    expect(b!.home.matchesPlayed).toBe(3); // only the home-side games
+    expect(b!.home.goalsForPerHome).toBeCloseTo(2, 10);
+    expect(b!.home.goalsAgainstPerHome).toBeCloseTo(0, 10);
+    expect(b!.away.matchesPlayed).toBe(3); // only the away-side games
+    expect(b!.away.goalsForPerAway).toBeCloseTo(1, 10);
+    expect(b!.away.goalsAgainstPerAway).toBeCloseTo(2, 10);
+  });
+
+  test("falls back to the team's NEUTRAL all-games rate when a venue split is thin", () => {
+    // Away team has only 2 away games (< MIN_FORM_SPLIT) → use all 4 of its games.
+    const homeForm = fw([ms(true, 2, 0), ms(true, 2, 0), ms(true, 2, 0)]);
+    const awayForm = fw([
+      ms(false, 4, 0),
+      ms(false, 4, 0),
+      ms(true, 1, 0),
+      ms(true, 1, 0),
+    ]);
+
+    const b = computeBaselineFromForm(homeForm, awayForm);
+    expect(b).not.toBeNull();
+    expect(b!.away.matchesPlayed).toBe(4); // neutral fallback: all games, not the 2 away
+    expect(b!.away.goalsForPerAway).toBeCloseTo((4 + 4 + 1 + 1) / 4, 10); // 2.5
+  });
+
+  test("league averages are pooled across both windows, split by venue", () => {
+    const homeForm = fw([ms(true, 3, 0), ms(true, 1, 0), ms(true, 2, 0)]); // 3 home-side, GF 3/1/2
+    const awayForm = fw([ms(false, 2, 0), ms(false, 0, 0), ms(false, 1, 0)]); // 3 away-side, GF 2/0/1
+
+    const b = computeBaselineFromForm(homeForm, awayForm);
+    expect(b).not.toBeNull();
+    expect(b!.league.avgHomeGoals).toBeCloseTo((3 + 1 + 2) / 3, 10); // pooled home side
+    expect(b!.league.avgAwayGoals).toBeCloseTo((2 + 0 + 1) / 3, 10); // pooled away side
+  });
+
+  test("returns null when either form window is empty", () => {
+    expect(computeBaselineFromForm(fw([]), fw([ms(false, 1, 1)]))).toBeNull();
+    expect(computeBaselineFromForm(fw([ms(true, 1, 1)]), fw([]))).toBeNull();
   });
 });

@@ -15,7 +15,7 @@ discipline**. It is **not** a guaranteed profit engine, and it does not pretend 
 be one.
 
 - The bookmaker's odds are a **professional consensus plus a margin** (the
-  "overround" / "vig"). That consensus is sharp. Beating it *systematically* is
+  "overround" / "vig"). That consensus is sharp. Beating it _systematically_ is
   extremely hard — most published "value" is noise once the margin and your own
   estimation error are accounted for.
 - The whole point of the architecture is to be **willing to say NO-BET**, loudly
@@ -57,7 +57,7 @@ Head Coach → Form Scout → Quant → Trader → Risk Manager → Sharp → He
 ### Named extension points (deliberately NOT built)
 
 These are real seams in the code, left unimplemented on purpose so the calibration
-log can *justify* building them later:
+log can _justify_ building them later:
 
 - **Scouts:** Lineup Scout, Player Scout, Context Scout, and a **Head Scout** to
   fuse parallel scout reports.
@@ -104,7 +104,7 @@ flowchart TD
 ```
 
 > **Living-diagram rule:** this diagram is part of "done". If the roster, the flow,
-> or the model assignments change, the diagram changes in the *same* commit. A stale
+> or the model assignments change, the diagram changes in the _same_ commit. A stale
 > diagram is worse than none.
 
 ---
@@ -118,13 +118,13 @@ free-form prose.
 
 **Deterministic prefetch before any LLM.** `src/scripts/prefetch.ts` pulls
 everything the agents could need from API-Football into a single `PrefetchBundle`
-*before any model runs*. No agent ever touches the network.
+_before any model runs_. No agent ever touches the network.
 
 **Determinism boundary — scripts compute, agents judge.** All math and all data
 live in plain Bun scripts/libs; the LLM is used only for judgment. The Poisson
 model (`compute.ts` → `odds-math.ts`), the de-vig + value math (`devig.ts` →
 `computeValue`), and the stake sizing (`stake.ts`) each write a `*-math.json` file.
-The corresponding agent *reads* that file, adds qualitative interpretation, and
+The corresponding agent _reads_ that file, adds qualitative interpretation, and
 writes its report — it performs **no arithmetic itself**. Crucially, a computed
 number **never round-trips through an agent**: downstream scripts read it from the
 deterministic `*-math.json` (e.g. `devig.ts` reads `quant-math.json`, not
@@ -136,7 +136,7 @@ deterministic `*-math.json` (e.g. `devig.ts` reads `quant-math.json`, not
 downstream. **Four layers** — schema, bounds, consistency (e.g. `edge === ourProb −
 fairProb`), and a **cross-check** that the numbers the agent copied EQUAL the
 deterministic `*-math.json` source (not merely in-bounds, so a within-bounds
-altered probability still fails). It reports *all* errors at once so a single retry
+altered probability still fails). It reports _all_ errors at once so a single retry
 can fix everything. An invalid report is sent back to the agent (bounded retry); it
 does not silently corrupt the run.
 
@@ -155,14 +155,14 @@ downstream agents temper their certainty.
 
 **MODE — `live` vs `validation` (no-lookahead).** `prefetch.ts` branches on `MODE`.
 In `live` it reads season-to-date aggregates (`/teams/statistics`, `/standings`,
-last-N form) — correct for an *upcoming* fixture. In `validation` (for a COMPLETED
+last-N form) — correct for an _upcoming_ fixture. In `validation` (for a COMPLETED
 season) it reconstructs the baseline and form **as of kickoff**, from only the
-matches that kicked off *before* the fixture (`computeBaselineFromFixtures` /
+matches that kicked off _before_ the fixture (`computeBaselineFromFixtures` /
 `getRecentFormBySeason(beforeDate)`), so a season aggregate that already contains
 the match being predicted can never leak the future into the estimate. The
 `backtest.ts` runner uses this to score a whole season deterministically (no LLM)
 into the calibration log: multiclass Brier vs a base-rate baseline, reliability,
-accuracy, and a flat-stake value P/L (a *ceiling* — it omits the live Sharp/Risk
+accuracy, and a flat-stake value P/L (a _ceiling_ — it omits the live Sharp/Risk
 vetoes).
 
 **Graceful degradation + bounded retry.** Prefetch respects per-league coverage
@@ -182,10 +182,10 @@ twice with backoff and caches stable data; live odds are always fetched fresh.
 - **No hand-tuned draw factor.** Pure independent Poisson systematically
   under-predicts low-scoring draws (real matches are mildly negatively correlated
   near 0-0 / 1-1). This is left **uncorrected on purpose** — the calibration log
-  surfaces the draw mis-calibration, and *that evidence* is what justifies building
+  surfaces the draw mis-calibration, and _that evidence_ is what justifies building
   the Dixon-Coles upgrade.
 - **De-vig** (`devig`): MVP uses **proportional** (normalized) de-vigging — simple
-  and *known-biased* (it spreads the margin evenly and ignores favorite-longshot
+  and _known-biased_ (it spreads the margin evenly and ignores favorite-longshot
   bias). `power` and `shin` are extension points that throw today.
 - **Value & staking:** `expectedValue = prob · odds − 1`; `fixedPctStake` =
   bankroll × `STAKE_PCT`, floored at 0 and capped at `MAX_STAKE`.
@@ -204,22 +204,22 @@ cp .env.example .env         # then edit .env
 
 Set the following in `.env`:
 
-| Variable | What it is |
-| --- | --- |
-| `API_FOOTBALL_KEY` | Your key from [api-football.com](https://www.api-football.com/) (free tier ≈ 100 requests/day). **Required.** |
-| `API_FOOTBALL_BASE_URL` | Defaults to `https://v3.football.api-sports.io`. |
-| `BANKROLL` | Total bankroll (default `1000`). |
-| `STAKE_PCT` | Fixed fraction of bankroll per bet (default `0.02` = 2%). |
-| `MAX_STAKE` | Hard per-bet cap (default `50`). |
-| `VALUE_THRESHOLD` | Minimum edge (our prob − fair prob) to call something value (default `0.05`). |
-| `DEVIG_METHOD` | `proportional` (MVP default) \| `power` \| `shin` (extensions). |
-| `MODE` | `validation` (default — no-lookahead historical backtest) \| `live` (upcoming fixtures, fresh odds). |
-| `LEAGUE_ID` / `SEASON` | Competition + completed season to read (default `39` / `2023` = EPL 2023/24). Run `capability.ts` to confirm your plan unlocks them. |
+| Variable                | What it is                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `API_FOOTBALL_KEY`      | Your key from [api-football.com](https://www.api-football.com/). **Required.**                                                       |
+| `API_FOOTBALL_BASE_URL` | Defaults to `https://v3.football.api-sports.io`.                                                                                     |
+| `BANKROLL`              | Total bankroll (default `1000`).                                                                                                     |
+| `STAKE_PCT`             | Fixed fraction of bankroll per bet (default `0.02` = 2%).                                                                            |
+| `MAX_STAKE`             | Hard per-bet cap (default `50`).                                                                                                     |
+| `VALUE_THRESHOLD`       | Minimum edge (our prob − fair prob) to call something value (default `0.05`).                                                        |
+| `DEVIG_METHOD`          | `proportional` (MVP default) \| `power` \| `shin` (extensions).                                                                      |
+| `MODE`                  | `validation` (default — no-lookahead historical backtest) \| `live` (upcoming fixtures, fresh odds).                                 |
+| `LEAGUE_ID` / `SEASON`  | Competition + completed season to read (default `39` / `2023` = EPL 2023/24). Run `capability.ts` to confirm your plan unlocks them. |
 
 **Rate limit:** stable data (coverage, fixtures, season stats, standings,
 predictions) is cached in `data/cache.sqlite` with a 24h TTL, so repeated runs on
-the same fixture stay well under the free tier. Only live odds are fetched fresh
-each time.
+the same fixture stay well under your plan's request limit. Only live odds are
+fetched fresh each time.
 
 ---
 
@@ -275,7 +275,7 @@ Brier contribution; `metrics.ts` reports:
 - **Hit rate** and **flat-stake P/L / ROI** — the honest bottom line.
 
 Expect a result **near or slightly below break-even**, and treat that as the truth.
-The loop's value is not a magic edge; it is that it *measures* whether you have one
+The loop's value is not a magic edge; it is that it _measures_ whether you have one
 and refuses to let you fool yourself.
 
 ---

@@ -38,7 +38,10 @@ export class Cache {
   /** Fresh JSON-parsed value, or null if absent/expired. Expired rows are evicted. */
   get<T>(key: string): T | null {
     const row = this.db
-      .query<CacheRow, [string]>("SELECT value, expiresAt FROM cache WHERE key = ?")
+      .query<
+        CacheRow,
+        [string]
+      >("SELECT value, expiresAt FROM cache WHERE key = ?")
       .get(key);
     if (row === null) return null;
     if (row.expiresAt <= this.now()) {
@@ -59,7 +62,11 @@ export class Cache {
   }
 
   /** Serve a fresh cached value, else fetch once, cache it, and return it. */
-  async withCache<T>(key: string, ttlMs: number, fetcher: () => Promise<T>): Promise<T> {
+  async withCache<T>(
+    key: string,
+    ttlMs: number,
+    fetcher: () => Promise<T>,
+  ): Promise<T> {
     const cached = this.get<T>(key);
     if (cached !== null) return cached;
     const fresh = await fetcher();

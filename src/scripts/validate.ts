@@ -105,7 +105,9 @@ async function runCrossCheck(): Promise<string[]> {
       const [quantMath, traderMath, riskMath, prefetch] = await Promise.all([
         readArtifact<QuantMath>("quant-math"),
         readArtifact<TraderMath>("trader-math"),
-        readArtifact<{ recommendedStake: number; ev: number | null }>("risk-math"),
+        readArtifact<{ recommendedStake: number; ev: number | null }>(
+          "risk-math",
+        ),
         readArtifact<PrefetchBundle>("prefetch"),
       ]);
       return crossCheckHeadCoach(data, {
@@ -127,7 +129,9 @@ try {
   errors.push(...(await runCrossCheck()));
 } catch (err) {
   const msg = err instanceof Error ? err.message : String(err);
-  errors.push(`could not read a deterministic source file to cross-check: ${msg}`);
+  errors.push(
+    `could not read a deterministic source file to cross-check: ${msg}`,
+  );
 }
 
 if (errors.length === 0) {

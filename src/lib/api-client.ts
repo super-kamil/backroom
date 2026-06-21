@@ -119,12 +119,18 @@ export interface ApiClient {
    * MatchResult (home/away perspective). STABLE-cached. The backtest derives
    * as-of-date baselines from this list. Non-finished fixtures are skipped.
    */
-  getLeagueSeasonResults(leagueId: number, season: number): Promise<MatchResult[]>;
+  getLeagueSeasonResults(
+    leagueId: number,
+    season: number,
+  ): Promise<MatchResult[]>;
   getBaseline(
     teamId: number,
     leagueId: number,
     season: number,
-  ): Promise<{ home: BaselineRates["home"]; away: BaselineRates["away"] } | null>;
+  ): Promise<{
+    home: BaselineRates["home"];
+    away: BaselineRates["away"];
+  } | null>;
   getLeagueAverages(
     leagueId: number,
     season: number,
@@ -135,7 +141,10 @@ export interface ApiClient {
    * immutable, so callers may pass `{ fresh: false }` to serve them from the
    * STABLE cache and stay under the rate limit.
    */
-  getOdds(fixtureId: number, opts?: { fresh?: boolean }): Promise<OddsData | null>;
+  getOdds(
+    fixtureId: number,
+    opts?: { fresh?: boolean },
+  ): Promise<OddsData | null>;
   getApiPredictions(fixtureId: number): Promise<OutcomeProbs | null>;
   getFixtureResult(fixtureId: number): Promise<Outcome | null>;
 }
@@ -211,7 +220,11 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
 
   /** Extract the `response` array, or [] if absent/empty/malformed. */
   function responseArray(json: unknown): unknown[] {
-    if (json && typeof json === "object" && Array.isArray((json as { response?: unknown }).response)) {
+    if (
+      json &&
+      typeof json === "object" &&
+      Array.isArray((json as { response?: unknown }).response)
+    ) {
       return (json as { response: unknown[] }).response;
     }
     return [];
@@ -219,7 +232,10 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
 
   // ── Methods ────────────────────────────────────────────────────────────────
 
-  async function getCoverage(leagueId: number, season: number): Promise<Coverage | null> {
+  async function getCoverage(
+    leagueId: number,
+    season: number,
+  ): Promise<Coverage | null> {
     const json = await request("/leagues", { id: leagueId, season });
     const arr = responseArray(json);
     const first = arr[0] as { seasons?: unknown[] } | undefined;
@@ -227,21 +243,32 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
 
     const entry = first.seasons.find(
       (s): s is { year: number; coverage?: Record<string, unknown> } =>
-        !!s && typeof s === "object" && (s as { year?: unknown }).year === season,
+        !!s &&
+        typeof s === "object" &&
+        (s as { year?: unknown }).year === season,
     );
     if (!entry) return null;
 
     const cov = (entry.coverage ?? {}) as Record<string, unknown>;
+    // API-Football nests the per-fixture statistics flags under `coverage.fixtures`
+    // (coverage.fixtures.statistics_fixtures / .statistics_players). Read them there
+    // first; fall back to any flattened/top-level shape for resilience.
+    const fixturesCov =
+      cov.fixtures && typeof cov.fixtures === "object"
+        ? (cov.fixtures as Record<string, unknown>)
+        : {};
     return {
       fixtures: toBool(cov.fixtures),
       statistics:
+        toBool(fixturesCov.statistics_fixtures) ||
+        toBool(fixturesCov.statistics_players) ||
         toBool(cov.statistics) ||
         toBool(cov.statistics_fixtures) ||
         toBool(cov.statistics_players),
       standings: toBool(cov.standings),
       odds: toBool(cov.odds),
       predictions: toBool(cov.predictions),
-      lineups: toBool(cov.lineups),
+      lineups: toBool(fixturesCov.lineups) || toBool(cov.lineups),
       injuries: toBool(cov.injuries),
     };
   }
@@ -263,7 +290,9 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
     if (opts.timezone !== undefined && opts.timezone !== "") {
       params.timezone = opts.timezone;
     }
-    const json = await request("/fixtures", params, { fresh: opts.fresh ?? true });
+    const json = await request("/fixtures", params, {
+      fresh: opts.fresh ?? true,
+    });
     const arr = responseArray(json);
 
     const fixtures: FixtureRef[] = [];
@@ -275,7 +304,10 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
     return fixtures;
   }
 
-  async function getRecentForm(teamId: number, last: number): Promise<FormWindow> {
+  async function getRecentForm(
+    teamId: number,
+    last: number,
+  ): Promise<FormWindow> {
     const json = await request("/fixtures", { team: teamId, last });
     const arr = responseArray(json);
 
@@ -295,7 +327,11 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
     beforeDateISO?: string,
   ): Promise<FormWindow> {
     // STABLE-cached: a completed season's fixtures never change.
-    const json = await request("/fixtures", { team: teamId, league: leagueId, season });
+    const json = await request("/fixtures", {
+      team: teamId,
+      league: leagueId,
+      season,
+    });
     const arr = responseArray(json);
 
     // toMatchSummary already drops non-finished fixtures and any game the subject
@@ -338,7 +374,10 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
     teamId: number,
     leagueId: number,
     season: number,
-  ): Promise<{ home: BaselineRates["home"]; away: BaselineRates["away"] } | null> {
+  ): Promise<{
+    home: BaselineRates["home"];
+    away: BaselineRates["away"];
+  } | null> {
     const json = await request("/teams/statistics", {
       team: teamId,
       league: leagueId,
@@ -383,9 +422,7 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
   ): Promise<BaselineRates["league"] | null> {
     const json = await request("/standings", { league: leagueId, season });
     const arr = responseArray(json);
-    const first = arr[0] as
-      | { league?: { standings?: unknown } }
-      | undefined;
+    const first = arr[0] as { league?: { standings?: unknown } } | undefined;
     const standings = first?.league?.standings;
     if (!Array.isArray(standings)) return null;
     const table = standings[0];
@@ -444,11 +481,17 @@ export function createApiClient(opts: CreateApiClientOpts = {}): ApiClient {
     return { bookmakers, consensus };
   }
 
-  async function getApiPredictions(fixtureId: number): Promise<OutcomeProbs | null> {
+  async function getApiPredictions(
+    fixtureId: number,
+  ): Promise<OutcomeProbs | null> {
     const json = await request("/predictions", { fixture: fixtureId });
     const arr = responseArray(json);
     const first = arr[0] as
-      | { predictions?: { percent?: { home?: unknown; draw?: unknown; away?: unknown } } }
+      | {
+          predictions?: {
+            percent?: { home?: unknown; draw?: unknown; away?: unknown };
+          };
+        }
       | undefined;
     const percent = first?.predictions?.percent;
     if (!percent) return null;
@@ -527,7 +570,8 @@ function normalizeFixture(row: unknown): FixtureRef {
       season: num(r.league?.season),
     },
     date: String(r.fixture?.date ?? ""),
-    venue: typeof venueName === "string" && venueName.length > 0 ? venueName : null,
+    venue:
+      typeof venueName === "string" && venueName.length > 0 ? venueName : null,
     status: String(r.fixture?.status?.short ?? ""),
     home: teamRef(r.teams?.home),
     away: teamRef(r.teams?.away),

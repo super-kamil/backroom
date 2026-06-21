@@ -104,7 +104,10 @@ function pairMatches(f: FixtureRef, a: string, b: string): boolean {
  * Results are de-duplicated by fixture id. The status is ok / ambiguous / none by
  * the count of distinct matches.
  */
-export function matchFixtures(fixtures: FixtureRef[], query: string): FixtureMatch {
+export function matchFixtures(
+  fixtures: FixtureRef[],
+  query: string,
+): FixtureMatch {
   const teams = parseTeams(query);
 
   let matched: FixtureRef[];
@@ -116,7 +119,8 @@ export function matchFixtures(fixtures: FixtureRef[], query: string): FixtureMat
       normalizeName(term) === ""
         ? []
         : fixtures.filter(
-            (f) => nameMatches(f.home.name, term) || nameMatches(f.away.name, term),
+            (f) =>
+              nameMatches(f.home.name, term) || nameMatches(f.away.name, term),
           );
   }
 

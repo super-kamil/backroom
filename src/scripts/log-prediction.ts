@@ -40,7 +40,9 @@ const decision = (await Bun.file(decisionPath).json()) as FinalDecision;
 // prefetch only costs us the timestamps map, not the rest of the stamp).
 let dataTimestamps: Record<string, string> = {};
 try {
-  const prefetch = (await Bun.file(runPath(fixtureId, "prefetch")).json()) as PrefetchBundle;
+  const prefetch = (await Bun.file(
+    runPath(fixtureId, "prefetch"),
+  ).json()) as PrefetchBundle;
   dataTimestamps = prefetch.dataTimestamps ?? {};
 } catch {
   dataTimestamps = {};

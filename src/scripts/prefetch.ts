@@ -31,7 +31,10 @@ import { API_KEY, MODE, FORM_WINDOW } from "../lib/config.ts";
 import { runDir, runPath, CACHE_DB_PATH } from "../lib/run-paths.ts";
 import { createApiClient } from "../lib/api-client.ts";
 import { Cache } from "../lib/cache.ts";
-import { computeBaselineFromFixtures } from "../lib/historical-baseline.ts";
+import {
+  computeBaselineFromFixtures,
+  computeBaselineFromForm,
+} from "../lib/historical-baseline.ts";
 import { evaluateGate } from "../lib/data-quality-gate.ts";
 
 const arg = process.argv[2];
@@ -72,7 +75,10 @@ if (fixture === null) {
 stamp("fixture");
 
 // ── 2. Coverage (drives every downstream decision) ────────────────────────────
-const coverage = await api.getCoverage(fixture.league.id, fixture.league.season);
+const coverage = await api.getCoverage(
+  fixture.league.id,
+  fixture.league.season,
+);
 if (coverage === null) {
   missing.push("coverage");
 } else {
@@ -197,13 +203,45 @@ if (MODE === "validation") {
   } else {
     missing.push("baseline:league (standings coverage unavailable)");
   }
+
+  // FALLBACK — neutral-venue / data-thin competitions (e.g. an in-progress World
+  // Cup) have no usable within-competition season aggregate this early: a team
+  // may have 0 away games, and tournament standings carry no home/away split. When
+  // the season aggregate can't satisfy the gate, derive the baseline from each
+  // team's recent form ACROSS ALL competitions (qualifiers, friendlies, etc.) so
+  // the chain can still price the match. Less calibrated than a league aggregate —
+  // a deliberate, stamped relaxation; the Sharp is expected to flag soft form.
+  const seasonBaselineUsable =
+    baselineHome.matchesPlayed > 0 &&
+    baselineAway.matchesPlayed > 0 &&
+    leagueAverages.avgHomeGoals > 0 &&
+    leagueAverages.avgAwayGoals > 0;
+  if (!seasonBaselineUsable) {
+    const formBaseline = computeBaselineFromForm(homeForm, awayForm);
+    if (formBaseline !== null) {
+      baselineHome = formBaseline.home;
+      baselineAway = formBaseline.away;
+      leagueAverages = formBaseline.league;
+      // Drop any season-baseline gaps now satisfied by the recent-form proxy.
+      for (const tag of ["baseline:home", "baseline:away", "baseline:league"]) {
+        const i = missing.indexOf(tag);
+        if (i !== -1) missing.splice(i, 1);
+      }
+      stamp("baseline-form-fallback");
+    }
+  }
 }
 
 // ── 4. Odds — gated on odds coverage. Live = FRESH; validation = cached (a
 //        completed season's odds are immutable, so cache to spare the rate limit).
-let odds: PrefetchBundle["odds"] = { bookmakers: [], consensus: { home: 0, draw: 0, away: 0 } };
+let odds: PrefetchBundle["odds"] = {
+  bookmakers: [],
+  consensus: { home: 0, draw: 0, away: 0 },
+};
 if (coverage && coverage.odds) {
-  const fetched = await api.getOdds(fixtureId, { fresh: MODE !== "validation" });
+  const fetched = await api.getOdds(fixtureId, {
+    fresh: MODE !== "validation",
+  });
   if (fetched === null) {
     missing.push("odds");
   } else {
@@ -251,15 +289,21 @@ const bundle: PrefetchBundle = {
 };
 
 mkdirSync(runDir(fixtureId), { recursive: true });
-await Bun.write(runPath(fixtureId, "prefetch"), JSON.stringify(bundle, null, 2));
+await Bun.write(
+  runPath(fixtureId, "prefetch"),
+  JSON.stringify(bundle, null, 2),
+);
 
 // ── 7. Run the Data Quality Gate and persist its verdict ──────────────────────
 const gate = evaluateGate(bundle);
 await Bun.write(runPath(fixtureId, "gate"), JSON.stringify(gate, null, 2));
 
 // ── 8. One-line summary; always exit 0 (verdict lives in gate.json) ───────────
-const missingSummary = gate.missing.length > 0 ? ` | missing: ${gate.missing.join(", ")}` : "";
-console.log(`[${MODE}] gate ${gate.gate === "pass" ? "PASS" : "FAIL"}${missingSummary}`);
+const missingSummary =
+  gate.missing.length > 0 ? ` | missing: ${gate.missing.join(", ")}` : "";
+console.log(
+  `[${MODE}] gate ${gate.gate === "pass" ? "PASS" : "FAIL"}${missingSummary}`,
+);
 
 cache.close();
 process.exit(0);

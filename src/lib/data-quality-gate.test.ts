@@ -52,10 +52,21 @@ function bundle(overrides: Partial<PrefetchBundle> = {}): PrefetchBundle {
       lineups: false,
       injuries: false,
     },
-    form: { home: { windowSize: 8, matches: forms(8) }, away: { windowSize: 8, matches: forms(8) } },
+    form: {
+      home: { windowSize: 8, matches: forms(8) },
+      away: { windowSize: 8, matches: forms(8) },
+    },
     baseline: {
-      home: { matchesPlayed: 14, goalsForPerHome: 1.7, goalsAgainstPerHome: 1.0 },
-      away: { matchesPlayed: 14, goalsForPerAway: 1.2, goalsAgainstPerAway: 1.3 },
+      home: {
+        matchesPlayed: 14,
+        goalsForPerHome: 1.7,
+        goalsAgainstPerHome: 1.0,
+      },
+      away: {
+        matchesPlayed: 14,
+        goalsForPerAway: 1.2,
+        goalsAgainstPerAway: 1.3,
+      },
       league: { avgHomeGoals: 1.5, avgAwayGoals: 1.1 },
     },
     odds: {
@@ -116,7 +127,9 @@ describe("evaluateGate — pass", () => {
 describe("evaluateGate — fail closed", () => {
   test("missing odds (consensus not > 1) → fail, confidence low", () => {
     const r = evaluateGate(
-      bundle({ odds: { bookmakers: [], consensus: { home: 0, draw: 0, away: 0 } } }),
+      bundle({
+        odds: { bookmakers: [], consensus: { home: 0, draw: 0, away: 0 } },
+      }),
     );
     expect(r.gate).toBe("fail");
     expect(r.checks.oddsAvailable).toBe(false);
@@ -126,7 +139,12 @@ describe("evaluateGate — fail closed", () => {
 
   test("a single odd at exactly 1.0 (no payout) is treated as unavailable", () => {
     const r = evaluateGate(
-      bundle({ odds: { bookmakers: [], consensus: { home: 1.0, draw: 3.4, away: 3.6 } } }),
+      bundle({
+        odds: {
+          bookmakers: [],
+          consensus: { home: 1.0, draw: 3.4, away: 3.6 },
+        },
+      }),
     );
     expect(r.gate).toBe("fail");
     expect(r.checks.oddsAvailable).toBe(false);
@@ -151,8 +169,16 @@ describe("evaluateGate — fail closed", () => {
     const r = evaluateGate(
       bundle({
         baseline: {
-          home: { matchesPlayed: 14, goalsForPerHome: 1.7, goalsAgainstPerHome: 1.0 },
-          away: { matchesPlayed: 14, goalsForPerAway: 1.2, goalsAgainstPerAway: 1.3 },
+          home: {
+            matchesPlayed: 14,
+            goalsForPerHome: 1.7,
+            goalsAgainstPerHome: 1.0,
+          },
+          away: {
+            matchesPlayed: 14,
+            goalsForPerAway: 1.2,
+            goalsAgainstPerAway: 1.3,
+          },
           league: { avgHomeGoals: 0, avgAwayGoals: 1.1 },
         },
       }),
@@ -166,8 +192,16 @@ describe("evaluateGate — fail closed", () => {
     const r = evaluateGate(
       bundle({
         baseline: {
-          home: { matchesPlayed: 0, goalsForPerHome: 0, goalsAgainstPerHome: 0 },
-          away: { matchesPlayed: 14, goalsForPerAway: 1.2, goalsAgainstPerAway: 1.3 },
+          home: {
+            matchesPlayed: 0,
+            goalsForPerHome: 0,
+            goalsAgainstPerHome: 0,
+          },
+          away: {
+            matchesPlayed: 14,
+            goalsForPerAway: 1.2,
+            goalsAgainstPerAway: 1.3,
+          },
           league: { avgHomeGoals: 1.5, avgAwayGoals: 1.1 },
         },
       }),

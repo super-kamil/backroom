@@ -96,13 +96,22 @@ function asOutcomeProbs(
     }
   }
   if (!ok) return undefined;
-  return { home: v.home as number, draw: v.draw as number, away: v.away as number };
+  return {
+    home: v.home as number,
+    draw: v.draw as number,
+    away: v.away as number,
+  };
 }
 
 /** Check every member of a triple is a valid probability in [0,1]. */
-function checkProbTriple(t: OutcomeProbs, field: string, errors: string[]): void {
+function checkProbTriple(
+  t: OutcomeProbs,
+  field: string,
+  errors: string[],
+): void {
   for (const k of OUTCOMES) {
-    if (!isProb(t[k])) errors.push(`${field}.${k}: probability must be in [0,1]`);
+    if (!isProb(t[k]))
+      errors.push(`${field}.${k}: probability must be in [0,1]`);
   }
 }
 
@@ -308,7 +317,10 @@ function validateTrader(data: unknown): string[] {
   // value map: one entry per outcome with the edge identity enforced.
   const value = d.value;
   const perOutcome: Partial<
-    Record<Outcome, { ourProb: number; fairProb: number; edge: number; hasValue: boolean }>
+    Record<
+      Outcome,
+      { ourProb: number; fairProb: number; edge: number; hasValue: boolean }
+    >
   > = {};
   if (!isObject(value)) {
     errors.push("value: expected a Record<Outcome, …> object");
@@ -342,7 +354,12 @@ function validateTrader(data: unknown): string[] {
       }
       // CONSISTENCY: edge === ourProb − fairProb.
       if (entryOk) {
-        if (!approxEqual(edge as number, (ourProb as number) - (fairProb as number))) {
+        if (
+          !approxEqual(
+            edge as number,
+            (ourProb as number) - (fairProb as number),
+          )
+        ) {
           errors.push(
             `value.${k}.edge: must equal ourProb − fairProb (got ${edge})`,
           );
@@ -509,7 +526,12 @@ function validateSharp(data: unknown): string[] {
         errors.push(`challenges[${i}]: expected an object`);
         continue;
       }
-      requireOneOf(c.type, SHARP_CHALLENGE_TYPES, `challenges[${i}].type`, errors);
+      requireOneOf(
+        c.type,
+        SHARP_CHALLENGE_TYPES,
+        `challenges[${i}].type`,
+        errors,
+      );
       requireOneOf(
         c.severity,
         ["low", "medium", "high"] as const,
@@ -530,7 +552,8 @@ function validateHeadCoach(data: unknown): string[] {
   const d = data as Record<string, unknown>;
 
   if (!Number.isInteger(d.matchId)) errors.push("matchId: expected an integer");
-  if (!isObject(d.fixture)) errors.push("fixture: expected a FixtureRef object");
+  if (!isObject(d.fixture))
+    errors.push("fixture: expected a FixtureRef object");
 
   requireOneOf(
     d.recommendation,
@@ -557,7 +580,14 @@ function validateHeadCoach(data: unknown): string[] {
   }
 
   // Numeric fields are number-or-null. Probabilities, when present, are bounded.
-  const numericFields = ["ourProb", "fairProb", "edge", "odds", "ev", "stake"] as const;
+  const numericFields = [
+    "ourProb",
+    "fairProb",
+    "edge",
+    "odds",
+    "ev",
+    "stake",
+  ] as const;
   for (const f of numericFields) {
     const v = d[f];
     if (v !== null && !isFiniteNumber(v)) {
@@ -607,7 +637,13 @@ function validateHeadCoach(data: unknown): string[] {
 
   // CONSISTENCY: the recommendation drives which fields must be present.
   if (d.recommendation === "BET") {
-    const required = ["selection", "ourProb", "fairProb", "odds", "stake"] as const;
+    const required = [
+      "selection",
+      "ourProb",
+      "fairProb",
+      "odds",
+      "stake",
+    ] as const;
     for (const f of required) {
       if (d[f] === null || d[f] === undefined) {
         errors.push(`${f}: must be non-null when recommendation === "BET"`);
@@ -619,7 +655,9 @@ function validateHeadCoach(data: unknown): string[] {
       isFiniteNumber(d.fairProb)
     ) {
       if (!approxEqual(d.edge, d.ourProb - d.fairProb)) {
-        errors.push("edge: must equal ourProb − fairProb when recommendation === \"BET\"");
+        errors.push(
+          'edge: must equal ourProb − fairProb when recommendation === "BET"',
+        );
       }
     }
   } else if (d.recommendation === "NO-BET") {
@@ -650,10 +688,7 @@ const VALIDATORS: Record<string, AgentValidator> = {
  * Validate an agent's report through the schema / bounds / consistency layers.
  * Returns every error found (never bails early) so one retry can fix all of them.
  */
-export function validateReport(
-  agent: string,
-  data: unknown,
-): ValidationResult {
+export function validateReport(agent: string, data: unknown): ValidationResult {
   const validator = VALIDATORS[agent];
   if (!validator) {
     return { ok: false, errors: [`unknown agent "${agent}"`] };
@@ -695,7 +730,11 @@ export interface RiskMath {
 
 /** Assert `a` is a finite number equal to the source `b` within CROSSCHECK_EPS. */
 function eqNum(a: unknown, b: number, field: string, errors: string[]): void {
-  if (typeof a !== "number" || !Number.isFinite(a) || !approxEqual(a, b, CROSSCHECK_EPS)) {
+  if (
+    typeof a !== "number" ||
+    !Number.isFinite(a) ||
+    !approxEqual(a, b, CROSSCHECK_EPS)
+  ) {
     errors.push(
       `${field}: must equal the deterministic source value ${b} (got ${String(a)})`,
     );
@@ -727,7 +766,9 @@ export function crossCheckQuant(report: unknown, math: QuantMath): string[] {
   if (!isObject(report)) return ["quant: report must be an object"];
   const m = report.math;
   if (!isObject(m)) {
-    errors.push("math: must embed the deterministic QuantMath from quant-math.json");
+    errors.push(
+      "math: must embed the deterministic QuantMath from quant-math.json",
+    );
     return errors;
   }
 
@@ -757,7 +798,9 @@ export function crossCheckQuant(report: unknown, math: QuantMath): string[] {
       const r = ref[i];
       if (!r) continue;
       if (!isObject(s)) {
-        errors.push(`math.scorelineTopN[${i}]: must equal the deterministic source`);
+        errors.push(
+          `math.scorelineTopN[${i}]: must equal the deterministic source`,
+        );
         continue;
       }
       eqNum(s.home, r.home, `math.scorelineTopN[${i}].home`, errors);
@@ -785,7 +828,9 @@ export function crossCheckTrader(report: unknown, math: TraderMath): string[] {
   eqNum(report.valueThreshold, math.valueThreshold, "valueThreshold", errors);
 
   if (report.deVigMethod !== math.deVigMethod) {
-    errors.push(`deVigMethod: must equal the deterministic source "${math.deVigMethod}"`);
+    errors.push(
+      `deVigMethod: must equal the deterministic source "${math.deVigMethod}"`,
+    );
   }
   if ((report.bestSelection ?? null) !== (math.bestSelection ?? null)) {
     errors.push(
@@ -832,9 +877,16 @@ export function crossCheckRisk(report: unknown, math: RiskMath): string[] {
   eqNum(report.bankroll, math.bankroll, "bankroll", errors);
   eqNum(report.stakePct, math.stakePct, "stakePct", errors);
   eqNum(report.rawStake, math.rawStake, "rawStake", errors);
-  eqNum(report.recommendedStake, math.recommendedStake, "recommendedStake", errors);
+  eqNum(
+    report.recommendedStake,
+    math.recommendedStake,
+    "recommendedStake",
+    errors,
+  );
   if (report.stakeCapped !== math.stakeCapped) {
-    errors.push(`stakeCapped: must equal the deterministic source ${math.stakeCapped}`);
+    errors.push(
+      `stakeCapped: must equal the deterministic source ${math.stakeCapped}`,
+    );
   }
 
   return errors;

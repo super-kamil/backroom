@@ -35,7 +35,10 @@ function version(): PipelineVersion {
   };
 }
 
-function decision(matchId: number, overrides: Partial<FinalDecision> = {}): FinalDecision {
+function decision(
+  matchId: number,
+  overrides: Partial<FinalDecision> = {},
+): FinalDecision {
   return {
     matchId,
     fixture: fixture(matchId),
@@ -68,7 +71,10 @@ function decision(matchId: number, overrides: Partial<FinalDecision> = {}): Fina
   };
 }
 
-function record(matchId: number, overrides: Partial<FinalDecision> = {}): PredictionRecord {
+function record(
+  matchId: number,
+  overrides: Partial<FinalDecision> = {},
+): PredictionRecord {
   const d = decision(matchId, overrides);
   return {
     matchId,
@@ -139,7 +145,9 @@ describe("CalibrationLog", () => {
     expect(settled[0]!.decision.recommendation).toBe("BET");
     expect(settled[0]!.decision.selection).toBe("home");
     expect(settled[0]!.decision.odds).toBeCloseTo(2.0, 10);
-    expect(settled[0]!.decision.version.pipelineVersion).toBe("mvp-thin-chain-0.1.0");
+    expect(settled[0]!.decision.version.pipelineVersion).toBe(
+      "mvp-thin-chain-0.1.0",
+    );
     log.close();
   });
 
@@ -147,7 +155,9 @@ describe("CalibrationLog", () => {
     const log = new CalibrationLog(":memory:");
     log.insertPrediction(record(102, { ourProb: 0.6, edge: 0.1 }));
     // Re-insert same matchId with changed fields.
-    log.insertPrediction(record(102, { ourProb: 0.7, edge: 0.2, selection: "away" }));
+    log.insertPrediction(
+      record(102, { ourProb: 0.7, edge: 0.2, selection: "away" }),
+    );
 
     const open = log.getOpenPredictions();
     expect(open).toHaveLength(1);
@@ -160,7 +170,9 @@ describe("CalibrationLog", () => {
 
   test("settle persists across the queryable columns and JSON consistently", () => {
     const log = new CalibrationLog(":memory:");
-    log.insertPrediction(record(103, { recommendation: "NO-BET", selection: null, ourProb: null }));
+    log.insertPrediction(
+      record(103, { recommendation: "NO-BET", selection: null, ourProb: null }),
+    );
 
     const open = log.getOpenPredictions();
     expect(open[0]).toBeDefined();
@@ -217,7 +229,9 @@ describe("CalibrationLog — validation (calibration_predictions) table", () => 
 
   test("a calibration-only row (no odds) round-trips with market undefined", () => {
     const log = new CalibrationLog(":memory:");
-    log.insertCalibration(calibration(201, { actualOutcome: "draw", brier: 0.4 }));
+    log.insertCalibration(
+      calibration(201, { actualOutcome: "draw", brier: 0.4 }),
+    );
     const all = log.getAllCalibration();
     expect(all).toHaveLength(1);
     expect(all[0]!.market).toBeUndefined();

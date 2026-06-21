@@ -25,7 +25,14 @@ import {
 } from "./calibration-metrics.ts";
 import { CalibrationLog } from "./calibration.ts";
 
-function mr(id: number, date: string, home: number, away: number, gh: number, ga: number): MatchResult {
+function mr(
+  id: number,
+  date: string,
+  home: number,
+  away: number,
+  gh: number,
+  ga: number,
+): MatchResult {
   return {
     fixtureId: id,
     date,
@@ -58,7 +65,12 @@ function pipelineFor(
   fx: MatchResult,
   consensus: OutcomeOdds,
 ): CalibrationPrediction | null {
-  const baseline = computeBaselineFromFixtures(results, fx.home.id, fx.away.id, fx.date);
+  const baseline = computeBaselineFromFixtures(
+    results,
+    fx.home.id,
+    fx.away.id,
+    fx.date,
+  );
   if (baseline === null) return null;
   const math = computeOneXTwo(baseline);
   const market = computeValue(math.probs, consensus, "proportional", 0.05);

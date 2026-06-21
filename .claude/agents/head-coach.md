@@ -96,7 +96,9 @@ Write valid JSON to `runs/<fixtureId>/decision.json`:
 ```json
 {
   "matchId": 0,
-  "fixture": { /* the FixtureRef from prefetch.json */ },
+  "fixture": {
+    /* the FixtureRef from prefetch.json */
+  },
   "recommendation": "BET | NO-BET",
   "selection": "home | draw | away | null",
   "ourProb": 0.0,
@@ -107,8 +109,13 @@ Write valid JSON to `runs/<fixtureId>/decision.json`:
   "stake": 0.0,
   "confidence": "high | medium | low",
   "rationale": "concise, honest, non-promotional reasoning",
-  "dissent": { "sharpVerdict": "agree | disagree | uncertain", "divergence": "where Sharp and Quant agree/diverge" },
-  "dataQuality": { /* the DataQualityResult from gate.json */ }
+  "dissent": {
+    "sharpVerdict": "agree | disagree | uncertain",
+    "divergence": "where Sharp and Quant agree/diverge"
+  },
+  "dataQuality": {
+    /* the DataQualityResult from gate.json */
+  }
 }
 ```
 

@@ -97,7 +97,9 @@ if (!DATE_RE.test(startDate)) {
 }
 
 if (API_KEY === "") {
-  fail("API_FOOTBALL_KEY is not set — add it to your .env before resolving fixtures.");
+  fail(
+    "API_FOOTBALL_KEY is not set — add it to your .env before resolving fixtures.",
+  );
 }
 
 // ── Fetch the day window and resolve ──────────────────────────────────────────

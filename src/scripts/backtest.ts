@@ -43,14 +43,17 @@ import { CalibrationLog } from "../lib/calibration.ts";
 import { CALIBRATION_DB_PATH } from "../lib/run-paths.ts";
 
 if (API_KEY === "") {
-  console.error("API_FOOTBALL_KEY is empty — set it in .env before backtesting.");
+  console.error(
+    "API_FOOTBALL_KEY is empty — set it in .env before backtesting.",
+  );
   process.exit(1);
 }
 
 const leagueId = Number(process.argv[2] ?? LEAGUE_ID);
 const season = Number(process.argv[3] ?? SEASON);
 const limitArg = process.argv[4];
-const limit = limitArg !== undefined && limitArg !== "" ? Number(limitArg) : Infinity;
+const limit =
+  limitArg !== undefined && limitArg !== "" ? Number(limitArg) : Infinity;
 
 const api = createApiClient();
 const log = new CalibrationLog(CALIBRATION_DB_PATH);
@@ -62,7 +65,9 @@ let withOdds = 0;
 const preds: CalibrationPrediction[] = [];
 
 try {
-  console.log(`backtest — league=${leagueId} season=${season} devig=${DEVIG_METHOD} threshold=${VALUE_THRESHOLD}`);
+  console.log(
+    `backtest — league=${leagueId} season=${season} devig=${DEVIG_METHOD} threshold=${VALUE_THRESHOLD}`,
+  );
 
   const results = await api.getLeagueSeasonResults(leagueId, season);
   if (results.length === 0) {
@@ -73,12 +78,19 @@ try {
   }
 
   // Chronological order so "as-of" warmup grows naturally through the season.
-  const ordered = [...results].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const ordered = [...results].sort((a, b) =>
+    a.date < b.date ? -1 : a.date > b.date ? 1 : 0,
+  );
 
   for (const fx of ordered) {
     if (processed >= limit) break;
 
-    const baseline = computeBaselineFromFixtures(results, fx.home.id, fx.away.id, fx.date);
+    const baseline = computeBaselineFromFixtures(
+      results,
+      fx.home.id,
+      fx.away.id,
+      fx.date,
+    );
     if (baseline === null) {
       warmupSkipped++;
       continue; // insufficient prior matches — not a low-confidence guess, a skip
@@ -105,7 +117,10 @@ try {
       brier,
       market,
       mode: "validation",
-      version: buildVersionStamp({ createdAt, dataTimestamps: { asOf: fx.date } }),
+      version: buildVersionStamp({
+        createdAt,
+        dataTimestamps: { asOf: fx.date },
+      }),
       createdAt,
       settledAt: createdAt, // historical: settled at creation
     };
@@ -127,13 +142,24 @@ const acc = accuracy(preds);
 const pnl = valueBacktest(preds);
 
 const fmt = (x: number | null, d = 4) => (x === null ? "n/a" : x.toFixed(d));
-const pct = (x: number | null, d = 1) => (x === null ? "n/a" : `${(x * 100).toFixed(d)}%`);
+const pct = (x: number | null, d = 1) =>
+  x === null ? "n/a" : `${(x * 100).toFixed(d)}%`;
 
 console.log("\n=== Backtest summary ===");
-console.log(`fixtures scored   : ${processed}  (warmup-skipped ${warmupSkipped}, with odds ${withOdds})`);
-console.log(`multiclass Brier  : ${fmt(brier)}   (base-rate ${fmt(base)} — lower than base-rate = real skill)`);
+console.log(
+  `fixtures scored   : ${processed}  (warmup-skipped ${warmupSkipped}, with odds ${withOdds})`,
+);
+console.log(
+  `multiclass Brier  : ${fmt(brier)}   (base-rate ${fmt(base)} — lower than base-rate = real skill)`,
+);
 console.log(`top-pick accuracy : ${pct(acc)}`);
 console.log(`value bets        : ${pnl.bets}  hit ${pct(pnl.hitRate)}`);
-console.log(`flat-stake P/L    : ${pnl.profit.toFixed(2)} u (staked ${pnl.staked.toFixed(2)} u)  ROI ${pct(pnl.roi)}`);
-console.log("\nNote: the value P/L is a CEILING — it omits the live Sharp/Risk vetoes.");
-console.log("Run `bun run src/scripts/metrics.ts` for the full reliability curve.");
+console.log(
+  `flat-stake P/L    : ${pnl.profit.toFixed(2)} u (staked ${pnl.staked.toFixed(2)} u)  ROI ${pct(pnl.roi)}`,
+);
+console.log(
+  "\nNote: the value P/L is a CEILING — it omits the live Sharp/Risk vetoes.",
+);
+console.log(
+  "Run `bun run src/scripts/metrics.ts` for the full reliability curve.",
+);

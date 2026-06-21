@@ -256,7 +256,9 @@ export class CalibrationLog {
       )
       .all() as Array<Record<string, unknown>>;
     return rows.map((r) => {
-      const p = JSON.parse(asString(r["predictionJson"])) as CalibrationPrediction;
+      const p = JSON.parse(
+        asString(r["predictionJson"]),
+      ) as CalibrationPrediction;
       return {
         ...p,
         actualOutcome: asStringOrNull(r["actualOutcome"]) as Outcome | null,
@@ -269,9 +271,13 @@ export class CalibrationLog {
   /** Calibration rows not yet settled — for future live validation. */
   getOpenCalibration(): CalibrationPrediction[] {
     const rows = this.db
-      .query(`SELECT predictionJson FROM calibration_predictions WHERE settledAt IS NULL`)
+      .query(
+        `SELECT predictionJson FROM calibration_predictions WHERE settledAt IS NULL`,
+      )
       .all() as Array<Record<string, unknown>>;
-    return rows.map((r) => JSON.parse(asString(r["predictionJson"])) as CalibrationPrediction);
+    return rows.map(
+      (r) => JSON.parse(asString(r["predictionJson"])) as CalibrationPrediction,
+    );
   }
 
   /** Record the resolved outcome + Brier contribution for one calibration row. */

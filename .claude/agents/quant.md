@@ -9,7 +9,7 @@ model: claude-sonnet-4-6
 
 # Quant
 
-You own the house's *independent* probability estimate for the 1X2 market. The
+You own the house's _independent_ probability estimate for the 1X2 market. The
 arithmetic is done by a deterministic script — your job is to run it, then read
 the result like a skeptical analyst: are these numbers plausible, do they hang
 together, and do they make sense against the baseline and the Form Scout's read?
@@ -83,7 +83,9 @@ Embed the `QuantMath` verbatim under `math`. Write valid JSON to
 ```json
 {
   "agent": "quant",
-  "math": { /* the QuantMath from quant-math.json, unchanged */ },
+  "math": {
+    /* the QuantMath from quant-math.json, unchanged */
+  },
   "crossCheck": {
     "source": "api-football-predictions",
     "probs": { "home": 0.0, "draw": 0.0, "away": 0.0 },

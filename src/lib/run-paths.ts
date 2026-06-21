@@ -47,6 +47,9 @@ export type RunArtifact =
   | "sharp"
   | "decision";
 
-export function runPath(fixtureId: number | string, artifact: RunArtifact): string {
+export function runPath(
+  fixtureId: number | string,
+  artifact: RunArtifact,
+): string {
   return join(runDir(fixtureId), `${artifact}.json`);
 }

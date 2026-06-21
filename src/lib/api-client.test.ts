@@ -70,7 +70,12 @@ test("getFixture maps a null venue to null", async () => {
   const { fn } = stubFetch(() => ({
     response: [
       {
-        fixture: { id: 1, date: "2026-01-01T00:00:00+00:00", venue: { name: null }, status: { short: "NS" } },
+        fixture: {
+          id: 1,
+          date: "2026-01-01T00:00:00+00:00",
+          venue: { name: null },
+          status: { short: "NS" },
+        },
         league: { id: 39, name: "PL", season: 2025 },
         teams: { home: { id: 1, name: "A" }, away: { id: 2, name: "B" } },
       },
@@ -89,20 +94,39 @@ test("searchFixturesByDate normalizes every row, drops id-less rows, and keys by
   const { fn, calls } = stubFetch(() => ({
     response: [
       {
-        fixture: { id: 501, date: "2026-06-21T18:00:00+00:00", venue: { name: "V" }, status: { short: "NS" } },
+        fixture: {
+          id: 501,
+          date: "2026-06-21T18:00:00+00:00",
+          venue: { name: "V" },
+          status: { short: "NS" },
+        },
         league: { id: 1, name: "World Cup", season: 2026 },
-        teams: { home: { id: 1, name: "Belgium" }, away: { id: 2, name: "Iran" } },
+        teams: {
+          home: { id: 1, name: "Belgium" },
+          away: { id: 2, name: "Iran" },
+        },
       },
       {
-        fixture: { id: 502, date: "2026-06-21T21:00:00+00:00", venue: null, status: { short: "NS" } },
+        fixture: {
+          id: 502,
+          date: "2026-06-21T21:00:00+00:00",
+          venue: null,
+          status: { short: "NS" },
+        },
         league: { id: 1, name: "World Cup", season: 2026 },
-        teams: { home: { id: 3, name: "Brazil" }, away: { id: 4, name: "Serbia" } },
+        teams: {
+          home: { id: 3, name: "Brazil" },
+          away: { id: 4, name: "Serbia" },
+        },
       },
       // Malformed row with no fixture id → dropped (id normalizes to 0).
       {
         fixture: { date: "2026-06-21T12:00:00+00:00", status: { short: "NS" } },
         league: { id: 1, name: "World Cup", season: 2026 },
-        teams: { home: { id: 5, name: "Ghost" }, away: { id: 6, name: "Phantom" } },
+        teams: {
+          home: { id: 5, name: "Ghost" },
+          away: { id: 6, name: "Phantom" },
+        },
       },
     ],
   }));
@@ -143,8 +167,14 @@ test("searchFixturesByDate passes a timezone when given and can opt into the cac
   const { fn, calls } = stubFetch(() => ({ response: [] }));
   const client = createApiClient({ fetchFn: fn, cache: memCache() });
 
-  await client.searchFixturesByDate("2026-06-21", { fresh: false, timezone: "Europe/Brussels" });
-  await client.searchFixturesByDate("2026-06-21", { fresh: false, timezone: "Europe/Brussels" });
+  await client.searchFixturesByDate("2026-06-21", {
+    fresh: false,
+    timezone: "Europe/Brussels",
+  });
+  await client.searchFixturesByDate("2026-06-21", {
+    fresh: false,
+    timezone: "Europe/Brussels",
+  });
 
   expect(calls[0]).toContain("timezone=Europe%2FBrussels");
   expect(calls).toHaveLength(1); // fresh:false → the second identical call is served from cache
@@ -160,26 +190,54 @@ test("getRecentForm maps home flag, goalsFor/Against and W/D/L from the subject 
     response: [
       // Subject at HOME, wins 3-1
       {
-        fixture: { id: 100, date: "2026-06-01T00:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 33, name: "Subject" }, away: { id: 50, name: "Foe A" } },
+        fixture: {
+          id: 100,
+          date: "2026-06-01T00:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 33, name: "Subject" },
+          away: { id: 50, name: "Foe A" },
+        },
         goals: { home: 3, away: 1 },
       },
       // Subject AWAY, loses 0-2 (i.e. home scored 2)
       {
-        fixture: { id: 101, date: "2026-05-25T00:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 60, name: "Foe B" }, away: { id: 33, name: "Subject" } },
+        fixture: {
+          id: 101,
+          date: "2026-05-25T00:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 60, name: "Foe B" },
+          away: { id: 33, name: "Subject" },
+        },
         goals: { home: 2, away: 0 },
       },
       // Subject AWAY, draws 1-1
       {
-        fixture: { id: 102, date: "2026-05-18T00:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 70, name: "Foe C" }, away: { id: 33, name: "Subject" } },
+        fixture: {
+          id: 102,
+          date: "2026-05-18T00:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 70, name: "Foe C" },
+          away: { id: 33, name: "Subject" },
+        },
         goals: { home: 1, away: 1 },
       },
       // Not finished — must be excluded from the window
       {
-        fixture: { id: 103, date: "2026-06-10T00:00:00+00:00", status: { short: "NS" } },
-        teams: { home: { id: 33, name: "Subject" }, away: { id: 80, name: "Foe D" } },
+        fixture: {
+          id: 103,
+          date: "2026-06-10T00:00:00+00:00",
+          status: { short: "NS" },
+        },
+        teams: {
+          home: { id: 33, name: "Subject" },
+          away: { id: 80, name: "Foe D" },
+        },
         goals: { home: null, away: null },
       },
     ],
@@ -222,7 +280,11 @@ test("getRecentForm returns an empty window when no fixtures are finished", asyn
   const { fn } = stubFetch(() => ({
     response: [
       {
-        fixture: { id: 1, date: "2026-06-10T00:00:00+00:00", status: { short: "NS" } },
+        fixture: {
+          id: 1,
+          date: "2026-06-10T00:00:00+00:00",
+          status: { short: "NS" },
+        },
         teams: { home: { id: 33, name: "S" }, away: { id: 80, name: "F" } },
         goals: { home: null, away: null },
       },
@@ -243,32 +305,67 @@ test("getRecentFormBySeason filters by beforeDate, sorts DESC, takes n, maps sub
     response: [
       // out of order on purpose; subject AWAY win 2-0 — newest BEFORE the cut
       {
-        fixture: { id: 201, date: "2024-03-10T15:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 60, name: "Foe B" }, away: { id: 33, name: "Subject" } },
+        fixture: {
+          id: 201,
+          date: "2024-03-10T15:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 60, name: "Foe B" },
+          away: { id: 33, name: "Subject" },
+        },
         goals: { home: 0, away: 2 },
       },
       // subject HOME win 3-1 — oldest of the three pre-cut games
       {
-        fixture: { id: 200, date: "2024-02-01T15:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 33, name: "Subject" }, away: { id: 50, name: "Foe A" } },
+        fixture: {
+          id: 200,
+          date: "2024-02-01T15:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 33, name: "Subject" },
+          away: { id: 50, name: "Foe A" },
+        },
         goals: { home: 3, away: 1 },
       },
       // subject HOME draw 1-1 — middle of the three pre-cut games
       {
-        fixture: { id: 202, date: "2024-02-20T15:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 33, name: "Subject" }, away: { id: 70, name: "Foe C" } },
+        fixture: {
+          id: 202,
+          date: "2024-02-20T15:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 33, name: "Subject" },
+          away: { id: 70, name: "Foe C" },
+        },
         goals: { home: 1, away: 1 },
       },
       // ON/AFTER the cut date → excluded (no lookahead)
       {
-        fixture: { id: 203, date: "2024-04-01T15:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 33, name: "Subject" }, away: { id: 80, name: "Foe D" } },
+        fixture: {
+          id: 203,
+          date: "2024-04-01T15:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 33, name: "Subject" },
+          away: { id: 80, name: "Foe D" },
+        },
         goals: { home: 5, away: 0 },
       },
       // not finished → excluded
       {
-        fixture: { id: 204, date: "2024-03-01T15:00:00+00:00", status: { short: "NS" } },
-        teams: { home: { id: 33, name: "Subject" }, away: { id: 90, name: "Foe E" } },
+        fixture: {
+          id: 204,
+          date: "2024-03-01T15:00:00+00:00",
+          status: { short: "NS" },
+        },
+        teams: {
+          home: { id: 33, name: "Subject" },
+          away: { id: 90, name: "Foe E" },
+        },
         goals: { home: null, away: null },
       },
     ],
@@ -276,7 +373,13 @@ test("getRecentFormBySeason filters by beforeDate, sorts DESC, takes n, maps sub
 
   const client = createApiClient({ fetchFn: fn, cache: memCache() });
   // Window of 2 from matches strictly before 2024-04-01.
-  const form = await client.getRecentFormBySeason(SUBJECT, 39, 2023, 2, "2024-04-01T00:00:00+00:00");
+  const form = await client.getRecentFormBySeason(
+    SUBJECT,
+    39,
+    2023,
+    2,
+    "2024-04-01T00:00:00+00:00",
+  );
 
   // Endpoint is /fixtures keyed by team+league+season (NOT last=N).
   expect(calls).toHaveLength(1);
@@ -321,12 +424,20 @@ test("getRecentFormBySeason without beforeDate keeps every finished game, sorted
   const { fn } = stubFetch(() => ({
     response: [
       {
-        fixture: { id: 300, date: "2024-01-01T00:00:00+00:00", status: { short: "FT" } },
+        fixture: {
+          id: 300,
+          date: "2024-01-01T00:00:00+00:00",
+          status: { short: "FT" },
+        },
         teams: { home: { id: 33, name: "S" }, away: { id: 50, name: "A" } },
         goals: { home: 1, away: 0 },
       },
       {
-        fixture: { id: 301, date: "2024-05-01T00:00:00+00:00", status: { short: "FT" } },
+        fixture: {
+          id: 301,
+          date: "2024-05-01T00:00:00+00:00",
+          status: { short: "FT" },
+        },
         teams: { home: { id: 60, name: "B" }, away: { id: 33, name: "S" } },
         goals: { home: 2, away: 2 },
       },
@@ -355,26 +466,54 @@ test("getLeagueSeasonResults derives home/draw/away outcomes and skips an unfini
     response: [
       // home win
       {
-        fixture: { id: 400, date: "2024-01-01T00:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 1, name: "Home A" }, away: { id: 2, name: "Away A" } },
+        fixture: {
+          id: 400,
+          date: "2024-01-01T00:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 1, name: "Home A" },
+          away: { id: 2, name: "Away A" },
+        },
         goals: { home: 2, away: 0 },
       },
       // draw (AET still counts as finished)
       {
-        fixture: { id: 401, date: "2024-01-02T00:00:00+00:00", status: { short: "AET" } },
-        teams: { home: { id: 3, name: "Home B" }, away: { id: 4, name: "Away B" } },
+        fixture: {
+          id: 401,
+          date: "2024-01-02T00:00:00+00:00",
+          status: { short: "AET" },
+        },
+        teams: {
+          home: { id: 3, name: "Home B" },
+          away: { id: 4, name: "Away B" },
+        },
         goals: { home: 1, away: 1 },
       },
       // away win
       {
-        fixture: { id: 402, date: "2024-01-03T00:00:00+00:00", status: { short: "FT" } },
-        teams: { home: { id: 5, name: "Home C" }, away: { id: 6, name: "Away C" } },
+        fixture: {
+          id: 402,
+          date: "2024-01-03T00:00:00+00:00",
+          status: { short: "FT" },
+        },
+        teams: {
+          home: { id: 5, name: "Home C" },
+          away: { id: 6, name: "Away C" },
+        },
         goals: { home: 0, away: 3 },
       },
       // unfinished → skipped
       {
-        fixture: { id: 403, date: "2024-01-04T00:00:00+00:00", status: { short: "NS" } },
-        teams: { home: { id: 7, name: "Home D" }, away: { id: 8, name: "Away D" } },
+        fixture: {
+          id: 403,
+          date: "2024-01-04T00:00:00+00:00",
+          status: { short: "NS" },
+        },
+        teams: {
+          home: { id: 7, name: "Home D" },
+          away: { id: 8, name: "Away D" },
+        },
         goals: { home: null, away: null },
       },
     ],
@@ -437,7 +576,11 @@ test("getOdds extracts Match Winner and computes the median consensus across two
                 ],
               },
               // a non-1X2 bet that MUST be ignored
-              { id: 5, name: "Goals Over/Under", values: [{ value: "Over 2.5", odd: "1.90" }] },
+              {
+                id: 5,
+                name: "Goals Over/Under",
+                values: [{ value: "Over 2.5", odd: "1.90" }],
+              },
             ],
           },
           {
@@ -517,7 +660,13 @@ test("getOdds returns null when no bookmaker has Match Winner", async () => {
         bookmakers: [
           {
             name: "Only Totals",
-            bets: [{ id: 5, name: "Goals Over/Under", values: [{ value: "Over 2.5", odd: "1.90" }] }],
+            bets: [
+              {
+                id: 5,
+                name: "Goals Over/Under",
+                values: [{ value: "Over 2.5", odd: "1.90" }],
+              },
+            ],
           },
         ],
       },
@@ -581,14 +730,18 @@ test("getCoverage maps the coverage flags for the matching season, coercing nest
           {
             year: 2025,
             coverage: {
-              fixtures: { events: true, statistics_fixtures: true },
+              // Real API-Football shape: the statistics flags live nested under
+              // `fixtures`, NOT at the top level of `coverage`.
+              fixtures: {
+                events: true,
+                lineups: true,
+                statistics_fixtures: true,
+                statistics_players: true,
+              },
               standings: true,
               odds: true,
               predictions: true,
               injuries: false,
-              // statistics may be exposed as nested flags
-              statistics_fixtures: true,
-              lineups: true,
             },
           },
         ],
@@ -737,20 +890,35 @@ test("getFixtureResult returns the outcome for a finished match", async () => {
 
 test("getFixtureResult returns draw and away correctly", async () => {
   const drawFetch = stubFetch(() => ({
-    response: [{ fixture: { status: { short: "AET" } }, goals: { home: 1, away: 1 } }],
+    response: [
+      { fixture: { status: { short: "AET" } }, goals: { home: 1, away: 1 } },
+    ],
   }));
   const awayFetch = stubFetch(() => ({
-    response: [{ fixture: { status: { short: "FT" } }, goals: { home: 0, away: 2 } }],
+    response: [
+      { fixture: { status: { short: "FT" } }, goals: { home: 0, away: 2 } },
+    ],
   }));
-  const drawClient = createApiClient({ fetchFn: drawFetch.fn, cache: memCache() });
-  const awayClient = createApiClient({ fetchFn: awayFetch.fn, cache: memCache() });
+  const drawClient = createApiClient({
+    fetchFn: drawFetch.fn,
+    cache: memCache(),
+  });
+  const awayClient = createApiClient({
+    fetchFn: awayFetch.fn,
+    cache: memCache(),
+  });
   expect(await drawClient.getFixtureResult(1)).toBe("draw");
   expect(await awayClient.getFixtureResult(1)).toBe("away");
 });
 
 test("getFixtureResult returns null when the match has not finished", async () => {
   const { fn } = stubFetch(() => ({
-    response: [{ fixture: { status: { short: "NS" } }, goals: { home: null, away: null } }],
+    response: [
+      {
+        fixture: { status: { short: "NS" } },
+        goals: { home: null, away: null },
+      },
+    ],
   }));
   const client = createApiClient({ fetchFn: fn, cache: memCache() });
   expect(await client.getFixtureResult(1)).toBeNull();
@@ -781,7 +949,12 @@ test("stable GETs are cached: a second identical call does not re-fetch", async 
     const payload = {
       response: [
         {
-          fixture: { id: 1, date: "d", venue: { name: "V" }, status: { short: "NS" } },
+          fixture: {
+            id: 1,
+            date: "d",
+            venue: { name: "V" },
+            status: { short: "NS" },
+          },
           league: { id: 39, name: "PL", season: 2025 },
           teams: { home: { id: 1, name: "A" }, away: { id: 2, name: "B" } },
         },

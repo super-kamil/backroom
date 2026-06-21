@@ -75,7 +75,12 @@ function validTrader() {
   const mk = (o: keyof typeof ourProbs) => {
     const ourProb = ourProbs[o];
     const fairProb = fairProbs[o];
-    return { ourProb, fairProb, edge: ourProb - fairProb, hasValue: ourProb - fairProb >= 0.05 };
+    return {
+      ourProb,
+      fairProb,
+      edge: ourProb - fairProb,
+      hasValue: ourProb - fairProb >= 0.05,
+    };
   };
   return {
     agent: "trader",
@@ -241,10 +246,16 @@ describe("valid reports pass", () => {
     });
   });
   test("quant", () => {
-    expect(validateReport("quant", validQuant())).toEqual({ ok: true, errors: [] });
+    expect(validateReport("quant", validQuant())).toEqual({
+      ok: true,
+      errors: [],
+    });
   });
   test("trader", () => {
-    expect(validateReport("trader", validTrader())).toEqual({ ok: true, errors: [] });
+    expect(validateReport("trader", validTrader())).toEqual({
+      ok: true,
+      errors: [],
+    });
   });
   test("risk-manager", () => {
     expect(validateReport("risk-manager", validRisk())).toEqual({
@@ -253,7 +264,10 @@ describe("valid reports pass", () => {
     });
   });
   test("sharp", () => {
-    expect(validateReport("sharp", validSharp())).toEqual({ ok: true, errors: [] });
+    expect(validateReport("sharp", validSharp())).toEqual({
+      ok: true,
+      errors: [],
+    });
   });
   test("head-coach BET", () => {
     expect(validateReport("head-coach", validBetDecision())).toEqual({
@@ -386,7 +400,9 @@ describe("trader consistency", () => {
     (t as any).bestSelection = null;
     const r = validateReport("trader", t);
     expect(r.ok).toBe(false);
-    expect(r.errors.some((e) => e.includes("fairProbs: must sum to ~1"))).toBe(true);
+    expect(r.errors.some((e) => e.includes("fairProbs: must sum to ~1"))).toBe(
+      true,
+    );
   });
 });
 
@@ -404,9 +420,9 @@ describe("head-coach consistency", () => {
     (d as any).selection = "home";
     const r = validateReport("head-coach", d);
     expect(r.ok).toBe(false);
-    expect(
-      r.errors.some((e) => e.includes('selection: must be null')),
-    ).toBe(true);
+    expect(r.errors.some((e) => e.includes("selection: must be null"))).toBe(
+      true,
+    );
   });
 
   test("a BET decision with edge !== ourProb − fairProb fails", () => {
@@ -475,20 +491,28 @@ describe("crossCheckQuant", () => {
   test("an altered lambda fails", () => {
     const q = validQuant();
     q.math.lambda = { home: 2.0, away: 1.1 };
-    expect(crossCheckQuant(q, quantMath()).some((e) => e.includes("math.lambda.home"))).toBe(true);
+    expect(
+      crossCheckQuant(q, quantMath()).some((e) =>
+        e.includes("math.lambda.home"),
+      ),
+    ).toBe(true);
   });
 
   test("a wrong math version fails", () => {
     const q = validQuant();
     q.math.mathVersion = "tampered-9.9.9";
-    expect(crossCheckQuant(q, quantMath()).some((e) => e.includes("mathVersion"))).toBe(true);
+    expect(
+      crossCheckQuant(q, quantMath()).some((e) => e.includes("mathVersion")),
+    ).toBe(true);
   });
 
   test("an altered scoreline probability fails", () => {
     const q = validQuant();
     q.math.scorelineTopN[0]!.prob = 0.99;
     expect(
-      crossCheckQuant(q, quantMath()).some((e) => e.includes("scorelineTopN[0].prob")),
+      crossCheckQuant(q, quantMath()).some((e) =>
+        e.includes("scorelineTopN[0].prob"),
+      ),
     ).toBe(true);
   });
 });
@@ -501,14 +525,20 @@ describe("crossCheckTrader", () => {
   test("an altered fair probability fails", () => {
     const t = validTrader();
     t.fairProbs = { ...t.fairProbs, home: 0.6 };
-    expect(crossCheckTrader(t, traderMath()).some((e) => e.includes("fairProbs.home"))).toBe(true);
+    expect(
+      crossCheckTrader(t, traderMath()).some((e) =>
+        e.includes("fairProbs.home"),
+      ),
+    ).toBe(true);
   });
 
   test("an altered edge in the value map fails", () => {
     const t = validTrader();
     t.value.home.edge = 0.2;
     expect(
-      crossCheckTrader(t, traderMath()).some((e) => e.includes("value.home.edge")),
+      crossCheckTrader(t, traderMath()).some((e) =>
+        e.includes("value.home.edge"),
+      ),
     ).toBe(true);
   });
 
@@ -516,7 +546,9 @@ describe("crossCheckTrader", () => {
     const t = validTrader();
     (t as any).bestSelection = "draw";
     expect(
-      crossCheckTrader(t, traderMath()).some((e) => e.includes("bestSelection")),
+      crossCheckTrader(t, traderMath()).some((e) =>
+        e.includes("bestSelection"),
+      ),
     ).toBe(true);
   });
 });
@@ -530,14 +562,18 @@ describe("crossCheckRisk", () => {
     const rk = validRisk();
     rk.recommendedStake = 35; // still within MAX_STAKE/bankroll, but not the computed value
     expect(
-      crossCheckRisk(rk, riskMath()).some((e) => e.includes("recommendedStake")),
+      crossCheckRisk(rk, riskMath()).some((e) =>
+        e.includes("recommendedStake"),
+      ),
     ).toBe(true);
   });
 
   test("a flipped stakeCapped flag fails", () => {
     const rk = validRisk();
     rk.stakeCapped = true;
-    expect(crossCheckRisk(rk, riskMath()).some((e) => e.includes("stakeCapped"))).toBe(true);
+    expect(
+      crossCheckRisk(rk, riskMath()).some((e) => e.includes("stakeCapped")),
+    ).toBe(true);
   });
 });
 
@@ -580,13 +616,17 @@ describe("crossCheckHeadCoach", () => {
   test("an altered ourProb fails", () => {
     const d = validBetDecision();
     d.ourProb = 0.62; // not the quant-math source value 0.58
-    expect(crossCheckHeadCoach(d, sources()).some((e) => e.includes("ourProb"))).toBe(true);
+    expect(
+      crossCheckHeadCoach(d, sources()).some((e) => e.includes("ourProb")),
+    ).toBe(true);
   });
 
   test("a stake that does not match risk-math fails", () => {
     const d = validBetDecision();
     d.stake = 25;
-    expect(crossCheckHeadCoach(d, sources()).some((e) => e.includes("stake"))).toBe(true);
+    expect(
+      crossCheckHeadCoach(d, sources()).some((e) => e.includes("stake")),
+    ).toBe(true);
   });
 
   test("a selection other than the trader's bestSelection fails", () => {
@@ -595,7 +635,9 @@ describe("crossCheckHeadCoach", () => {
     // ourProb/fairProb/edge/odds for 'draw' won't match either, but the selection
     // mismatch is the headline error.
     expect(
-      crossCheckHeadCoach(d, sources()).some((e) => e.includes("bestSelection")),
+      crossCheckHeadCoach(d, sources()).some((e) =>
+        e.includes("bestSelection"),
+      ),
     ).toBe(true);
   });
 });

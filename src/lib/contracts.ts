@@ -135,7 +135,11 @@ export interface PrefetchBundle {
   /** Short-window form, one per team. Form Scout input. */
   form: { home: FormWindow; away: FormWindow };
   /** Season-long baseline. Quant input. */
-  baseline: { home: BaselineRates["home"]; away: BaselineRates["away"]; league: BaselineRates["league"] };
+  baseline: {
+    home: BaselineRates["home"];
+    away: BaselineRates["away"];
+    league: BaselineRates["league"];
+  };
   /** Live market odds. Trader input. */
   odds: OddsData;
   /** API-Football's OWN model — cross-check reference only, never our estimate. */
@@ -237,7 +241,10 @@ export interface TraderReport {
   /** Vig-free fair probabilities (sum ~1). */
   fairProbs: OutcomeProbs;
   /** Per-outcome value, edge = ourProb − fairProb. */
-  value: Record<Outcome, { ourProb: number; fairProb: number; edge: number; hasValue: boolean }>;
+  value: Record<
+    Outcome,
+    { ourProb: number; fairProb: number; edge: number; hasValue: boolean }
+  >;
   /** Outcome with the best qualifying edge, or null if none clears threshold. */
   bestSelection: Outcome | null;
   valueThreshold: number;

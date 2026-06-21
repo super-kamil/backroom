@@ -28,8 +28,12 @@ if (id === undefined || id === "") {
   process.exit(1);
 }
 
-const bundle = (await Bun.file(runPath(id, "prefetch")).json()) as PrefetchBundle;
-const quantMath = (await Bun.file(runPath(id, "quant-math")).json()) as QuantMath;
+const bundle = (await Bun.file(
+  runPath(id, "prefetch"),
+).json()) as PrefetchBundle;
+const quantMath = (await Bun.file(
+  runPath(id, "quant-math"),
+).json()) as QuantMath;
 
 const result = computeValue(
   quantMath.probs,

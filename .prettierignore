@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Lockfile (JSONC, managed by Bun)
+bun.lock
+
+# Local runtime state — SQLite cache, calibration log, per-match run artifacts
+data/
+runs/
+
+# Logs
+*.log

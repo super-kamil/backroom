@@ -23,17 +23,20 @@ if (id === undefined || id === "") {
   process.exit(1);
 }
 
-const trader = (await Bun.file(runPath(id, "trader-math")).json()) as TraderMath;
+const trader = (await Bun.file(
+  runPath(id, "trader-math"),
+).json()) as TraderMath;
 const { value, rawOdds, overround, bestSelection } = trader;
 
-const rawStake = bestSelection ? fixedPctStake(BANKROLL, STAKE_PCT, MAX_STAKE) : 0;
+const rawStake = bestSelection
+  ? fixedPctStake(BANKROLL, STAKE_PCT, MAX_STAKE)
+  : 0;
 const recommendedStake = Math.min(rawStake, MAX_STAKE);
 const stakeCapped = rawStake !== recommendedStake;
 
 const sel: Outcome | null = bestSelection;
 const odds: OutcomeOdds = rawOdds;
-const ev =
-  sel !== null ? expectedValue(value[sel].ourProb, odds[sel]) : null;
+const ev = sel !== null ? expectedValue(value[sel].ourProb, odds[sel]) : null;
 
 const result = {
   overround,

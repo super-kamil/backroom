@@ -44,10 +44,16 @@ Read the spine before writing code: `src/lib/contracts.ts`, `src/lib/config.ts`,
   API-Football fixture id. When the user names teams + a date ("Belgium vs Iran
   today"), look the id up via `/fixtures?date=YYYY-MM-DD` (the only network access is
   still through `api-client.ts` / the prefetch path) before starting the runbook.
-- **Only competitions with `statistics` coverage can be priced.** The independent
-  Poisson baseline needs season-to-date team scoring stats; a competition whose
-  coverage reports `statistics:false` (e.g. the World Cup on the free tier) has no
-  baseline to build and correctly ends in NO-BET. That is the gate working, not a bug.
+- **A competition can only be priced when it exposes a usable season-to-date
+  baseline.** The independent Poisson needs per-venue team scoring rates _and_
+  league averages built from matches already played this season. This fails two
+  ways: (a) coverage gaps — `statistics`/`standings` report `false`; or (b) a
+  season with too few matches played, so the per-venue `matchesPlayed` and the
+  league averages are still ~0. A just-started international tournament hits (b):
+  e.g. the World Cup group stage reports `statistics:true` yet has neutral venues
+  and near-zero home/away history, so `avgHomeGoals`/`avgAwayGoals` are 0 and the
+  gate (`data-quality-gate.ts`) correctly ends in NO-BET. That is the gate
+  working, not a bug.
 
 ## Decision rules
 
@@ -63,14 +69,20 @@ Read the spine before writing code: `src/lib/contracts.ts`, `src/lib/config.ts`,
 
 ## Engineering rules
 
-- **Zero external dependencies.** Bun 1.3 only — `fetch`, `bun:sqlite`, `bun test`,
-  native `.env`. Do **not** add npm packages or run `bun install` for runtime deps.
+- **Zero external _runtime_ dependencies.** Bun 1.3 only — `fetch`, `bun:sqlite`,
+  `bun test`, native `.env`. Do **not** add npm packages or run `bun install` for
+  runtime deps. The sole sanctioned exception is **Prettier**, a dev-only formatter
+  (`devDependencies`, never imported by shipped code); run it with `bun run format`
+  (check-only: `bun run format:check`). Do not add any other dev or runtime package
+  without the same explicit sign-off.
 - TypeScript is strict: `noUncheckedIndexedAccess` (guard `arr[i]`),
   `verbatimModuleSyntax` (use `import type` for types), local imports include the
   `.ts` extension, ESM only.
 - **Before declaring anything done, run `bun test` and `tsc --noEmit`** and make
   them pass. All non-trivial math must be unit-tested, never a black box.
 - Do not edit `package.json`, `tsconfig.json`, or other agents' assigned files.
+  (The `format` / `format:check` scripts and the `prettier` devDependency were added
+  under explicit sign-off — see the dependencies rule above.)
 
 ## LIVING-DIAGRAM RULE
 

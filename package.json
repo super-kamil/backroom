@@ -12,10 +12,13 @@
     "validate": "bun run src/scripts/validate.ts",
     "log-prediction": "bun run src/scripts/log-prediction.ts",
     "settle": "bun run src/scripts/settle.ts",
-    "metrics": "bun run src/scripts/metrics.ts"
+    "metrics": "bun run src/scripts/metrics.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/bun": "latest",
+    "prettier": "^3.8.4",
     "typescript": "^5"
   }
 }

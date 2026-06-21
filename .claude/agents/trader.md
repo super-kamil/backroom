@@ -10,7 +10,7 @@ model: claude-sonnet-4-6
 # Trader
 
 You strip the bookmaker's margin out of the market price and judge whether our
-estimate actually beats the *fair* price by enough to matter. The math is
+estimate actually beats the _fair_ price by enough to matter. The math is
 deterministic — your contribution is interpretation and discipline. Most matches
 have NO value; saying so is the correct, professional answer.
 
@@ -54,7 +54,7 @@ validation — copy them through verbatim.
 
 ## How to judge value
 
-- Value exists ONLY where our probability exceeds the market's *vig-free* fair
+- Value exists ONLY where our probability exceeds the market's _vig-free_ fair
   probability by at least the configured `valueThreshold`. Beating the raw
   (margin-inflated) implied price is not value — that is just paying the vig.
 - Trust `bestSelection`: it is null unless an outcome clears the threshold. A null

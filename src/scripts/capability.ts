@@ -17,10 +17,18 @@
  * Exit 0 = all required endpoints accessible; exit 1 = something is blocked.
  */
 
-import { API_BASE_URL, API_KEY, MODE, LEAGUE_ID, SEASON } from "../lib/config.ts";
+import {
+  API_BASE_URL,
+  API_KEY,
+  MODE,
+  LEAGUE_ID,
+  SEASON,
+} from "../lib/config.ts";
 
 if (!API_KEY) {
-  console.error("API_FOOTBALL_KEY is empty — set it in .env before the capability check.");
+  console.error(
+    "API_FOOTBALL_KEY is empty — set it in .env before the capability check.",
+  );
   process.exit(1);
 }
 
@@ -56,19 +64,25 @@ function planError(r: ApiResult): string | null {
 type Check = { name: string; ok: boolean; detail: string; required: boolean };
 const checks: Check[] = [];
 
-console.log(`Capability check — league=${leagueId} season=${season} mode=${MODE}`);
+console.log(
+  `Capability check — league=${leagueId} season=${season} mode=${MODE}`,
+);
 console.log(`provider=${API_BASE_URL}\n`);
 
 // 0) League + season existence and coverage flags (informational).
 const leagues = await get(`/leagues?id=${leagueId}`);
 const lerr = planError(leagues);
-const leagueRow = (leagues.response[0] ?? null) as
-  | { league?: { name?: string }; seasons?: Array<{ year: number; coverage?: unknown }> }
-  | null;
+const leagueRow = (leagues.response[0] ?? null) as {
+  league?: { name?: string };
+  seasons?: Array<{ year: number; coverage?: unknown }>;
+} | null;
 const seasonRow = leagueRow?.seasons?.find((s) => s.year === season) ?? null;
-console.log(`league: ${leagueRow?.league?.name ?? "(unknown)"} | season ${season} listed: ${seasonRow ? "yes" : "no"}`);
+console.log(
+  `league: ${leagueRow?.league?.name ?? "(unknown)"} | season ${season} listed: ${seasonRow ? "yes" : "no"}`,
+);
 if (lerr) console.log(`  /leagues note: ${lerr}`);
-if (seasonRow?.coverage) console.log(`  coverage flags: ${JSON.stringify(seasonRow.coverage)}`);
+if (seasonRow?.coverage)
+  console.log(`  coverage flags: ${JSON.stringify(seasonRow.coverage)}`);
 console.log("");
 
 // 1) fixtures (by league+season — powers form-by-season; avoids the paid `last` param)
@@ -101,7 +115,9 @@ if (MODE === "live") {
   });
 
   if (teamId !== null) {
-    const stats = await get(`/teams/statistics?team=${teamId}&league=${leagueId}&season=${season}`);
+    const stats = await get(
+      `/teams/statistics?team=${teamId}&league=${leagueId}&season=${season}`,
+    );
     const statErr = planError(stats);
     // /teams/statistics returns a single object in `response` (not an array) when
     // accessible; a plan block surfaces in `errors`.
@@ -141,10 +157,16 @@ for (const c of checks) {
 const blocked = checks.filter((c) => c.required && !c.ok);
 console.log("");
 if (blocked.length === 0) {
-  console.log(`CAPABILITY OK — league ${leagueId} / season ${season} supports ${MODE} mode.`);
+  console.log(
+    `CAPABILITY OK — league ${leagueId} / season ${season} supports ${MODE} mode.`,
+  );
   process.exit(0);
 } else {
-  console.log(`CAPABILITY FAIL — ${MODE} mode needs: ${blocked.map((c) => c.name).join(", ")}.`);
-  console.log("Pick a season your plan unlocks (validation), or upgrade the plan (live).");
+  console.log(
+    `CAPABILITY FAIL — ${MODE} mode needs: ${blocked.map((c) => c.name).join(", ")}.`,
+  );
+  console.log(
+    "Pick a season your plan unlocks (validation), or upgrade the plan (live).",
+  );
   process.exit(1);
 }

@@ -207,7 +207,10 @@ function settledPredictions(
  * Ranges 0..2 (0 = perfect, 2 = maximally wrong). The single source of the
  * per-row multiclass Brier — used by `multiclassBrier` and by the backtest runner.
  */
-export function multiclassBrierOne(probs: OutcomeProbs, actual: Outcome): number {
+export function multiclassBrierOne(
+  probs: OutcomeProbs,
+  actual: Outcome,
+): number {
   let sum = 0;
   for (const o of OUTCOMES) {
     const y = o === actual ? 1 : 0;

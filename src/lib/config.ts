@@ -57,8 +57,8 @@ export type Mode = "validation" | "live";
 export const MODE: Mode = (process.env.MODE as Mode) || "validation";
 
 // Which competition + season the data layer reads. In validation mode this MUST
-// point at a free, COMPLETED season (e.g. EPL 2023 = the 2023/24 season). The
-// capability check (src/scripts/capability.ts) confirms what your key unlocks.
+// point at a COMPLETED season your plan unlocks (e.g. EPL 2023 = the 2023/24
+// season). The capability check (src/scripts/capability.ts) confirms access.
 export const LEAGUE_ID = num("LEAGUE_ID", 39); // 39 = Premier League
 export const SEASON = num("SEASON", 2023); // 2023 = 2023/24, fully completed
 export const FORM_WINDOW = num("FORM_WINDOW", 10); // recent matches, sliced client-side

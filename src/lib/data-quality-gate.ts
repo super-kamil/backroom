@@ -36,18 +36,23 @@ export function evaluateGate(bundle: PrefetchBundle): DataQualityResult {
     bundle.baseline.away.matchesPlayed > 0 &&
     bundle.baseline.league.avgHomeGoals > 0 &&
     bundle.baseline.league.avgAwayGoals > 0;
-  const coverageChecked = bundle.coverage !== undefined && bundle.coverage !== null;
+  const coverageChecked =
+    bundle.coverage !== undefined && bundle.coverage !== null;
 
   // missing = whatever prefetch already flagged, plus any failed check here.
   const missing = [...bundle.missing];
   if (!oddsAvailable) missing.push("odds:consensus");
   if (!sufficientHomeForm) missing.push("form:home (insufficient fixtures)");
   if (!sufficientAwayForm) missing.push("form:away (insufficient fixtures)");
-  if (!baselineAvailable) missing.push("baseline (season rates / league averages)");
+  if (!baselineAvailable)
+    missing.push("baseline (season rates / league averages)");
   if (!coverageChecked) missing.push("coverage");
 
   const gate: DataQualityResult["gate"] =
-    oddsAvailable && baselineAvailable && sufficientHomeForm && sufficientAwayForm
+    oddsAvailable &&
+    baselineAvailable &&
+    sufficientHomeForm &&
+    sufficientAwayForm
       ? "pass"
       : "fail";
 

@@ -30,7 +30,7 @@ are the raw prefetch and the conclusion handed to you.
 ## Determinism boundary
 
 Agents judge; scripts compute. You do not recompute the model. You attack the
-*conclusion* using the raw data and your judgment.
+_conclusion_ using the raw data and your judgment.
 
 ## Lines of attack (pick the ones that bite — map each to a challenge type)
 

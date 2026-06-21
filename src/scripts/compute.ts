@@ -18,7 +18,9 @@ if (id === undefined || id === "") {
   process.exit(1);
 }
 
-const bundle = (await Bun.file(runPath(id, "prefetch")).json()) as PrefetchBundle;
+const bundle = (await Bun.file(
+  runPath(id, "prefetch"),
+).json()) as PrefetchBundle;
 const math = computeOneXTwo(bundle.baseline);
 
 await Bun.write(runPath(id, "quant-math"), JSON.stringify(math, null, 2));

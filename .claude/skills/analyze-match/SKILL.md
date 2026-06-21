@@ -14,6 +14,7 @@ every structured artifact, enforce bounded retry, and present an honest verdict.
 are out of scope — do not invent steps for them.
 
 ## The deterministic / agentic boundary
+
 - **Deterministic** (scripts, pure arithmetic, no LLM judgment): `prefetch.ts`,
   the Data Quality Gate, `compute.ts`, `devig.ts`, `stake.ts`, `validate.ts`. These
   produce the `*-math.json` and `gate.json` files. They are cheap and fail loudly.
@@ -30,7 +31,8 @@ are out of scope — do not invent steps for them.
   never from an agent's report.
 
 ## Concurrency model
-The scouts *could* run in parallel, but **the pricing chain is sequential and
+
+The scouts _could_ run in parallel, but **the pricing chain is sequential and
 dependent**: quant needs the prefetch, trader needs the quant's probabilities,
 risk-manager needs the trader's selection, sharp needs the trader math, and the
 head coach needs everything. Run the chain in order. In the MVP the only scout is
@@ -38,6 +40,7 @@ the form-scout, so there is nothing to actually parallelize yet — note it and 
 on.
 
 ## Bounded retry (applies to EVERY validate step below)
+
 - After a subagent returns, run its `validate.ts` check.
 - On **non-zero exit**: re-dispatch the SAME subagent ONCE, passing it the exact
   `INVALID …` error lines from the validator so it can fix the specific problem.
@@ -49,6 +52,7 @@ on.
 ---
 
 ## Step 0 — Resolve the fixture id from the argument
+
 The argument is EITHER (a) a bare positive integer API-Football fixture id, or
 (b) a natural-language match description such as `belgium vs iran`, optionally with
 a day hint (`today`, `tonight`, `tomorrow`) or an explicit date. Let `<id>` denote
@@ -68,6 +72,7 @@ the resolved integer fixture id used by every step below.
 
      Pass `--days 2` when a late kickoff might land on the next UTC day, or to widen
      the search after a `none` result.
+
    - Branch on the result (it prints a JSON object to stdout and sets an exit code):
      - **ok** (exit 0) → take `fixtureId` as `<id>`. Tell the user which fixture
        matched (teams, league, kickoff) and continue to Step 1.
@@ -84,6 +89,7 @@ If the description is too vague to extract two team names (only one side, no
 opponent), ask the user to name both teams (or give a fixture id) before resolving.
 
 ## Step 1 — DETERMINISTIC PREFETCH + gate (runs before any LLM)
+
 Run:
 
 ```
@@ -94,12 +100,13 @@ Then read `runs/<id>/gate.json` (a `DataQualityResult`).
 
 - If `gate.gate === "fail"`: **STOP**. Output **NO-BET / insufficient data** and
   list the items in `gate.missing` plus `gate.reason`. Do NOT dispatch any
-  subagent. The gate runs *before* any LLM precisely so a rate-limit, timeout, or
+  subagent. The gate runs _before_ any LLM precisely so a rate-limit, timeout, or
   coverage hole fails cheaply without burning model calls.
 - If `gate.gate === "pass"`: continue. Carry `gate.inputConfidence` forward — it
   caps the honest ceiling of the final confidence.
 
 ## Step 2 — FORM SCOUT
+
 Dispatch the **form-scout** subagent (Task tool, `subagent_type: form-scout`).
 Tell it: the `fixtureId` is `<id>`, and its input slice is `runs/<id>/prefetch.json`
 (it reads only `form.home` / `form.away`). It writes `runs/<id>/form-scout.json`.
@@ -113,6 +120,7 @@ bun run src/scripts/validate.ts form-scout <id>
 Apply the bounded-retry rule.
 
 ## Step 3 — QUANT
+
 Dispatch the **quant** subagent. It runs `compute.ts` (writing the deterministic
 `runs/<id>/quant-math.json`), reads that math, sanity-checks it, and writes
 `runs/<id>/quant.json`. It does NOT hand-compute the Poisson.
@@ -126,6 +134,7 @@ bun run src/scripts/validate.ts quant <id>
 Bounded-retry rule.
 
 ## Step 4 — TRADER
+
 Dispatch the **trader** subagent. It runs `devig.ts` (writing
 `runs/<id>/trader-math.json` — raw odds, overround, fair probs, per-outcome edge,
 bestSelection), interprets it, and writes `runs/<id>/trader.json`.
@@ -139,6 +148,7 @@ bun run src/scripts/validate.ts trader <id>
 Bounded-retry rule.
 
 ## Step 5 — RISK MANAGER
+
 Dispatch the **risk-manager** subagent. It runs `stake.ts` (writing
 `runs/<id>/risk-math.json`), applies bankroll discipline + the responsible-gambling
 gate, and writes `runs/<id>/risk.json`.
@@ -152,6 +162,7 @@ bun run src/scripts/validate.ts risk-manager <id>
 Bounded-retry rule.
 
 ## Step 6 — SHARP (fresh context, red-team)
+
 This step is deliberately information-starved so the critic cannot be anchored by
 the quant's reasoning.
 
@@ -175,6 +186,7 @@ bun run src/scripts/validate.ts sharp <id>
 Bounded-retry rule.
 
 ## Step 7 — HEAD COACH FINAL DECISION
+
 Dispatch the **head-coach** subagent to synthesize all reports into
 `runs/<id>/decision.json` (a `FinalDecision`) and log it. It weighs the trader's
 edge, the risk manager's approval/stake, the form scout's read, and — importantly —
@@ -189,6 +201,7 @@ bun run src/scripts/validate.ts head-coach <id>
 Bounded-retry rule.
 
 ## Step 8 — PRESENT to the user
+
 Read `runs/<id>/decision.json` and present a clear, honest summary:
 
 - **Recommendation**: BET or NO-BET (NO-BET is a legitimate, common outcome).
@@ -211,6 +224,7 @@ encourage chasing losses, never overstate edge, never imply certainty.
 ---
 
 ## GUARDRAILS (summary)
+
 - Max **2 attempts** per agentic step, then escalate to **NO-BET / needs human
   review**. Never loop indefinitely.
 - The gate is the cheap early stop — honor `gate.fail` before any LLM runs.

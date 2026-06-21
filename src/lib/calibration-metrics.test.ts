@@ -279,7 +279,10 @@ function cp(args: {
 }
 
 /** Minimal market block; valueBacktest only reads bestSelection + rawOdds[best]. */
-function market(bestSelection: Outcome | null, odds: number): CalibrationPrediction["market"] {
+function market(
+  bestSelection: Outcome | null,
+  odds: number,
+): CalibrationPrediction["market"] {
   const rawOdds = { home: 2.0, draw: 3.0, away: 4.0 };
   if (bestSelection) rawOdds[bestSelection] = odds;
   return {
@@ -300,10 +303,14 @@ function market(bestSelection: Outcome | null, odds: number): CalibrationPredict
 
 describe("multiclassBrierOne", () => {
   test("perfect confident call → 0", () => {
-    expect(multiclassBrierOne({ home: 1, draw: 0, away: 0 }, "home")).toBeCloseTo(0, 10);
+    expect(
+      multiclassBrierOne({ home: 1, draw: 0, away: 0 }, "home"),
+    ).toBeCloseTo(0, 10);
   });
   test("maximally wrong confident call → 2", () => {
-    expect(multiclassBrierOne({ home: 0, draw: 0, away: 1 }, "home")).toBeCloseTo(2, 10);
+    expect(
+      multiclassBrierOne({ home: 0, draw: 0, away: 1 }, "home"),
+    ).toBeCloseTo(2, 10);
   });
   test("uniform 1/3 each, actual home → 2/3", () => {
     expect(
@@ -317,20 +324,35 @@ describe("multiclassBrier", () => {
     expect(multiclassBrier([cp({ actualOutcome: null })])).toBeNull();
   });
   test("a perfect confident call scores 0", () => {
-    const p = cp({ probs: { home: 1, draw: 0, away: 0 }, actualOutcome: "home" });
+    const p = cp({
+      probs: { home: 1, draw: 0, away: 0 },
+      actualOutcome: "home",
+    });
     expect(multiclassBrier([p])).toBeCloseTo(0, 10);
   });
   test("a maximally wrong confident call scores 2", () => {
-    const p = cp({ probs: { home: 0, draw: 0, away: 1 }, actualOutcome: "home" });
+    const p = cp({
+      probs: { home: 0, draw: 0, away: 1 },
+      actualOutcome: "home",
+    });
     expect(multiclassBrier([p])).toBeCloseTo(2, 10);
   });
   test("uniform 1/3 each, actual home → 2/3", () => {
-    const p = cp({ probs: { home: 1 / 3, draw: 1 / 3, away: 1 / 3 }, actualOutcome: "home" });
+    const p = cp({
+      probs: { home: 1 / 3, draw: 1 / 3, away: 1 / 3 },
+      actualOutcome: "home",
+    });
     expect(multiclassBrier([p])).toBeCloseTo(2 / 3, 10);
   });
   test("averages across settled predictions (unsettled ignored)", () => {
-    const a = cp({ probs: { home: 1, draw: 0, away: 0 }, actualOutcome: "home" }); // 0
-    const b = cp({ probs: { home: 0, draw: 0, away: 1 }, actualOutcome: "home" }); // 2
+    const a = cp({
+      probs: { home: 1, draw: 0, away: 0 },
+      actualOutcome: "home",
+    }); // 0
+    const b = cp({
+      probs: { home: 0, draw: 0, away: 1 },
+      actualOutcome: "home",
+    }); // 2
     const open = cp({ actualOutcome: null }); // ignored
     expect(multiclassBrier([a, b, open])).toBeCloseTo(1, 10);
   });
@@ -341,8 +363,14 @@ describe("accuracy (top-pick)", () => {
     expect(accuracy([cp({ actualOutcome: null })])).toBeNull();
   });
   test("argmax matching the outcome counts as correct", () => {
-    const a = cp({ probs: { home: 0.5, draw: 0.3, away: 0.2 }, actualOutcome: "home" }); // correct
-    const b = cp({ probs: { home: 0.5, draw: 0.3, away: 0.2 }, actualOutcome: "away" }); // wrong
+    const a = cp({
+      probs: { home: 0.5, draw: 0.3, away: 0.2 },
+      actualOutcome: "home",
+    }); // correct
+    const b = cp({
+      probs: { home: 0.5, draw: 0.3, away: 0.2 },
+      actualOutcome: "away",
+    }); // wrong
     expect(accuracy([a, b])).toBeCloseTo(0.5, 10);
   });
 });
@@ -362,7 +390,10 @@ describe("baseRateBrier", () => {
 describe("reliabilityMulticlass", () => {
   test("pools the three outcome points per prediction into the right buckets", () => {
     // One settled pred: {0.75 home (hit), 0.15 draw (miss), 0.10 away (miss)}.
-    const p = cp({ probs: { home: 0.75, draw: 0.15, away: 0.1 }, actualOutcome: "home" });
+    const p = cp({
+      probs: { home: 0.75, draw: 0.15, away: 0.1 },
+      actualOutcome: "home",
+    });
     const buckets = reliabilityMulticlass([p], 10);
     expect(buckets[7]!.count).toBe(1); // [0.7,0.8): the home point
     expect(buckets[7]!.observedFreq).toBeCloseTo(1, 10);

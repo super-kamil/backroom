@@ -1,10 +1,20 @@
 import { expect, test } from "bun:test";
 
 import type { FixtureRef } from "./contracts.ts";
-import { matchFixtures, nameMatches, normalizeName, parseTeams } from "./fixture-match.ts";
+import {
+  matchFixtures,
+  nameMatches,
+  normalizeName,
+  parseTeams,
+} from "./fixture-match.ts";
 
 /** Build a minimal FixtureRef with the only fields matching cares about. */
-function fx(id: number, home: string, away: string, league = "Friendlies"): FixtureRef {
+function fx(
+  id: number,
+  home: string,
+  away: string,
+  league = "Friendlies",
+): FixtureRef {
   return {
     id,
     league: { id: 1, name: league, season: 2026 },
@@ -30,13 +40,19 @@ test("parseTeams splits on the common separators", () => {
   expect(parseTeams("belgium vs iran")).toEqual({ a: "belgium", b: "iran" });
   expect(parseTeams("belgium vs. iran")).toEqual({ a: "belgium", b: "iran" });
   expect(parseTeams("belgium v iran")).toEqual({ a: "belgium", b: "iran" });
-  expect(parseTeams("belgium versus iran")).toEqual({ a: "belgium", b: "iran" });
+  expect(parseTeams("belgium versus iran")).toEqual({
+    a: "belgium",
+    b: "iran",
+  });
   expect(parseTeams("belgium - iran")).toEqual({ a: "belgium", b: "iran" });
   expect(parseTeams("belgium x iran")).toEqual({ a: "belgium", b: "iran" });
 });
 
 test("parseTeams drops time words and keeps multi-word team names", () => {
-  expect(parseTeams("todays belgium vs iran")).toEqual({ a: "belgium", b: "iran" });
+  expect(parseTeams("todays belgium vs iran")).toEqual({
+    a: "belgium",
+    b: "iran",
+  });
   expect(parseTeams("manchester united vs real madrid")).toEqual({
     a: "manchester united",
     b: "real madrid",
